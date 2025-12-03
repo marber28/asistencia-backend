@@ -16,6 +16,7 @@ class StoreAlumnoRequest extends FormRequest
             'nombres' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
             'fecha_nacimiento' => 'nullable|date',
+            'anexo_id' => 'required|exists:anexos,id',
             'foto' => 'nullable|image|max:5120'
         ];
     }

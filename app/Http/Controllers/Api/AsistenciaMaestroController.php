@@ -24,7 +24,7 @@ class AsistenciaMaestroController extends Controller
         $data = $request->validated();
         $dia = $data['dia'];
         DB::transaction(function () use ($data, $dia) {
-            foreach ($data['asistencias'] as $row) {
+            foreach ($data['asistencia_maestros'] as $row) {
                 AsistenciaMaestro::updateOrCreate(
                     ['alumno_id' => $row['alumno_id'], 'dia' => $dia],
                     ['aula_id' => $data['aula_id'], 'estado' => $row['estado'], 'leccion_id' => ($row['leccion_id'] ?? null), 'observaciones' => ($row['observaciones'] ?? null)]
@@ -53,5 +53,61 @@ class AsistenciaMaestroController extends Controller
         // enviar a job
         \App\Jobs\GenerateMonthlyPdf::dispatch($request->mes, $request->aula_id, $request->user());
         return response()->json(['message' => 'Generación en cola, cuando esté listo se guardará en storage/app/public/reports']);
+    }
+
+    // Asistencia por día (YYYY-MM-DD)
+    public function porDia($fecha)
+    {
+        $data = DB::table('asistencia_maestros')
+            ->whereDate('dia', $fecha)
+            ->select(
+                DB::raw('DATE(dia) as fecha'),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN estado = 'presente' THEN 1 ELSE 0 END) AS presentes"),
+                DB::raw("SUM(CASE WHEN estado = 'falta' THEN 1 ELSE 0 END) AS faltas"),
+                DB::raw("SUM(CASE WHEN estado = 'tarde' THEN 1 ELSE 0 END) AS tardanzas")
+            )
+            ->first();
+
+        return response()->json($data);
+    }
+
+    // Asistencia por mes (YYYY-MM)
+    public function porMes($year, $month)
+    {
+        $data = DB::table('asistencia_maestros')
+            ->whereYear('dia', $year)
+            ->whereMonth('dia', $month)
+            ->select(
+                DB::raw('DATE(dia) as fecha'),
+                DB::raw("COUNT(*) as total"),
+                DB::raw("SUM(CASE WHEN estado = 'presente' THEN 1 ELSE 0 END) AS presentes"),
+                DB::raw("SUM(CASE WHEN estado = 'falta' THEN 1 ELSE 0 END) AS faltas"),
+                DB::raw("SUM(CASE WHEN estado = 'tarde' THEN 1 ELSE 0 END) AS tardanzas")
+            )
+            ->groupBy('dia')
+            ->orderBy('dia')
+            ->get();
+
+        return response()->json($data);
+    }
+
+    // Asistencia por año (YYYY)
+    public function porAnio($year)
+    {
+        $data = DB::table('asistencia_maestros')
+            ->whereYear('dia', $year)
+            ->select(
+                DB::raw('MONTH(dia) as fecha'),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN estado = 'presente' THEN 1 ELSE 0 END) AS presentes"),
+                DB::raw("SUM(CASE WHEN estado = 'falta' THEN 1 ELSE 0 END) AS faltas"),
+                DB::raw("SUM(CASE WHEN estado = 'tarde' THEN 1 ELSE 0 END) AS tardanzas")
+            )
+            ->groupBy('mes')
+            ->orderBy('mes')
+            ->get();
+
+        return response()->json($data);
     }
 }
