@@ -10,6 +10,9 @@ return new class extends Migration {
             $table->string('apellidos');
             $table->date('fecha_nacimiento')->nullable();
             $table->string('foto')->nullable();
+            //campo foreign key de la tabla anexos
+            $table->unsignedBigInteger('anexo_id');
+            $table->foreign('anexo_id')->references('id')->on('anexos')->onDelete('cascade');
             $table->timestamps();
         });
     }

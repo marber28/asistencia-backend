@@ -16,13 +16,23 @@ class RoleSeeder extends Seeder
     {
         Role::firstOrCreate(['name' => 'admin']);
         Role::firstOrCreate(['name' => 'maestro']);
-        Role::firstOrCreate(['name' => 'recepcionista']);
+        Role::firstOrCreate(['name' => 'responsable']);
 
         // crear usuario admin (ajusta email/password)
         $u = User::firstOrCreate(['email' => 'admin@asistencia.com'], [
             'name' => 'Admin',
+            'in_anexo' => false,
+            'enabled' => true,
             'password' => bcrypt('123456')
         ]);
         $u->assignRole('admin');
+
+        $pl = User::firstOrCreate(['email' => 'palmeras@asistencia.com'], [
+            'name' => 'Doris Palmeras',
+            'in_anexo' => true,
+            'enabled' => true,
+            'password' => bcrypt('123456')
+        ]);
+        $pl->assignRole('responsable');
     }
 }
