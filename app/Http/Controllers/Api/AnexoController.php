@@ -22,32 +22,32 @@ class AnexoController extends Controller
     {
         $data = $request->validated();
 
-        $maestro = Anexo::create($data);
-        return response()->json($maestro, 201);
+        $anexo = Anexo::create($data);
+        return response()->json($anexo, 201);
     }
 
-    public function show(Anexo $maestro)
+    public function show(Anexo $anexo)
     {
-        return $maestro->load('anexos');
+        return $anexo->load('anexos');
     }
 
-    public function update(Request $request, Anexo $maestro)
+    public function update(Request $request, Anexo $anexo)
     {
         $data = $request->validate([
-            'nombre' => 'sometimes|required|string|max:255',
-            'direccion' => 'sometimes|required|string|max:255',
-            'user_id' => 'sometimes|exists:users,id',
-            'fecha_creacion' => 'required|date|format:Y-m-d',
+            'nombre' => 'required|string|max:255',
+            'direccion' => 'required|string|max:255',
+            'user_id' => 'required|exists:users,id',
+            'fecha_creacion' => 'required|date|date_format:Y-m-d',
             'logo' => 'nullable',
             'activo' => 'sometimes|boolean',
         ]);
-        $maestro->update($data);
-        return response()->json($maestro);
+        $anexo->update($data);
+        return response()->json($anexo);
     }
 
-    public function destroy(Anexo $maestro)
+    public function destroy(Anexo $anexo)
     {
-        $maestro->delete();
+        $anexo->delete();
         return response()->noContent();
     }
 }

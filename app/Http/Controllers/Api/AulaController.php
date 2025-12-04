@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Aula;
 use Illuminate\Validation\Rule;
+use App\Http\Requests\StoreAulaRequest;
 
 class AulaController extends Controller
 {
@@ -18,14 +19,10 @@ class AulaController extends Controller
         return $q->paginate(20);
     }
 
-    public function store(Request $request)
+    public function store(StoreAulaRequest $request)
     {
-        $data = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'edad_min' => 'nullable|integer|min:0',
-            'edad_max' => 'nullable|integer|min:0',
-            'descripcion' => 'nullable|string',
-        ]);
+        $data = $request->validated();
+
         $aula = Aula::create($data);
         return response()->json($aula, 201);
     }

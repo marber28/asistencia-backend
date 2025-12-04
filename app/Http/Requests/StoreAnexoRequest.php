@@ -32,7 +32,7 @@ class StoreAnexoRequest extends FormRequest
     public function messages()
     {
         return [
-            'nombres.required' => 'El campo nombres es obligatorio.',
+            'nombre.required' => 'El campo nombres es obligatorio.',
             'direccion.required' => 'El campo direccion es obligatorio.',
             'fecha_creacion.required' => 'La fecha de creación es obligatorio.',
             'fecha_creacion.date' => 'La fecha de creación no es una fecha.',
