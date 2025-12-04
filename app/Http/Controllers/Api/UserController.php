@@ -27,7 +27,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
-        return $user->load('usuarios');
+        return [];
     }
 
     public function list()
@@ -56,6 +56,7 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'lastname' => 'sometimes|string|max:255',
             //'email'    => 'sometimes|nullable|email|unique:users,email,' . $user->id,
+            'in_anexo' => 'sometimes|boolean',
             'password' => 'sometimes|nullable|min:6',
             'enabled' => 'sometimes|boolean',
         ]);

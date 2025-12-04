@@ -18,12 +18,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     // aquí tus recursos protegidos...
-    Route::apiResource('usuarios', UserController::class);
     Route::get('usuarios/list', [UserController::class, 'list']);
+    Route::apiResource('usuarios', UserController::class);
 
     Route::apiResource('aulas', AulaController::class);
     Route::apiResource('anexos', AnexoController::class);
     Route::apiResource('alumnos', AlumnoController::class);
+    Route::post('alumnos/massive', [AlumnoController::class, 'storeMassive']);
+    Route::get("alumnos/massive/template", [AlumnoController::class, "massiveTemplate"]);
+
     Route::apiResource('maestros', MaestroController::class);
     Route::apiResource('lecciones', LeccionController::class);
     Route::get('lecciones/{leccion}/download', [LeccionController::class, 'downloadLeccion']);
