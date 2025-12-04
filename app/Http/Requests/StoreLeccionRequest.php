@@ -13,10 +13,20 @@ class StoreLeccionRequest extends FormRequest
     public function rules()
     {
         return [
-            'titulo' => 'required|string|max:255',
+            'titulo' => 'required|string|max:255|unique:lecciones,titulo',
             'fecha' => 'nullable|date',
             'versiculo' => 'nullable|string|max:255',
             'archivo_pdf' => 'nullable|mimes:pdf|max:10240'
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'titulo.required' => 'El título es obligatorio.',
+            'titulo.unique' => 'El título ya ha sido usado.',
+            'fecha.date' => 'La fecha no es correcta',
+            'archivo_pdf' => 'Solo se permite un archivo .pdf'
         ];
     }
 }

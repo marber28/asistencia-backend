@@ -28,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get("alumnos/massive/template", [AlumnoController::class, "massiveTemplate"]);
 
     Route::apiResource('maestros', MaestroController::class);
+
+    Route::post('lecciones/massive', [LeccionController::class, 'storeMassive']);
+    Route::get("lecciones/massive/template", [LeccionController::class, "massiveTemplate"]);
     Route::apiResource('lecciones', LeccionController::class);
     Route::get('lecciones/{leccion}/download', [LeccionController::class, 'downloadLeccion']);
 
