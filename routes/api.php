@@ -19,6 +19,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     // aquí tus recursos protegidos...
     Route::apiResource('usuarios', UserController::class);
+    Route::get('usuarios/list', [UserController::class, 'list']);
+
     Route::apiResource('aulas', AulaController::class);
     Route::apiResource('anexos', AnexoController::class);
     Route::apiResource('alumnos', AlumnoController::class);
