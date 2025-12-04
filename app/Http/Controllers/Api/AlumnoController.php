@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreAlumnoRequest;
 use App\Models\Alumno;
 
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
 class AlumnoController extends Controller
 {
     public function index(Request $request)
@@ -48,5 +51,128 @@ class AlumnoController extends Controller
     {
         $alumno->delete();
         return response()->noContent();
+    }
+
+    public function storeMassive(Request $request)
+    {
+        $request->validate([
+            "file" => "required|mimes:xlsx,csv,txt|max:4096",
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+
+        $rows = [];
+
+        // Detectar extensión
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if ($extension === "csv" || $extension === "txt") {
+            // 🔹 Lectura CSV correcta
+            if (($handle = fopen($path, "r")) !== false) {
+                while (($data = fgetcsv($handle, 1000, ",")) !== false) {
+                    $rows[] = $data;
+                }
+                fclose($handle);
+            }
+        } else {
+            // 🔹 Lectura XLSX correcta (evita caracteres extraños)
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray();
+        }
+
+        // Remover encabezado
+        array_shift($rows);
+
+        $errores = [];
+        $insertados = 0;
+
+        foreach ($rows as $i => $row) {
+            $nombres = $row[0] ?? null;
+            $apellidos = $row[1] ?? null;
+            $fecha_nacimiento = $row[2] ?? null;
+            $anexo_id = $row[3] ?? null;
+            $foto = $row[4] ?? null;
+
+            $validator = \Validator::make([
+                "nombres" => $nombres,
+                "apellidos" => $apellidos,
+                "fecha_nacimiento" => $fecha_nacimiento,
+                "anexo_id" => $anexo_id,
+                "foto" => $foto,
+            ], [
+                'nombres' => 'required|string|max:255',
+                'apellidos' => 'required|string|max:255',
+                'fecha_nacimiento' => 'nullable|date',
+                'anexo_id' => 'required|exists:anexos,id',
+                'foto' => 'nullable'
+            ]);
+
+            if ($validator->fails()) {
+                $errores[] = "Fila " . ($i + 2) . ": " . implode(", ", $validator->errors()->all());
+                continue;
+            }
+
+            Alumno::updateOrCreate(
+                // Search criteria
+                [
+                    'nombres' => $nombres,
+                    "apellidos" => $apellidos
+                ],
+                // Values to update/create
+                [
+                    "fecha_nacimiento" => $fecha_nacimiento,
+                    "anexo_id" => $anexo_id,
+                    "foto" => $foto
+                ]
+            );
+
+            $insertados++;
+        }
+
+        return response()->json([
+            "insertados" => $insertados,
+            "errores" => $errores,
+        ], count($errores) ? 422 : 200);
+    }
+
+    public function massiveTemplate()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // ENCABEZADOS
+        $columns = [
+            "nombres",
+            "apellidos",
+            "fecha_nacimiento",
+            "anexo_id",
+            "foto",
+        ];
+
+        $sheet->fromArray([$columns], NULL, 'A1');
+
+        // Estilo de encabezado
+        foreach (range('A', 'E') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+            $sheet->getStyle("{$col}1")->getFont()->setBold(true);
+        }
+
+        // Fila de ejemplo opcional
+        $sheet->fromArray([
+            ['Carlos', 'Rodriguez', "2025-01-15", 1, '/ruta']
+        ], NULL, 'A2');
+
+        // Generar archivo
+        $fileName = "plantilla_alumno.xlsx";
+        $writer = new Xlsx($spreadsheet);
+
+        // Devolver como descarga
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $fileName, [
+            "Content-Type" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ]);
     }
 }
