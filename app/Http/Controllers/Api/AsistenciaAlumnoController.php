@@ -75,12 +75,22 @@ class AsistenciaAlumnoController extends Controller
 
         $rows = [];
 
-        // Detectar CSV o Excel simple
-        if (($handle = fopen($path, "r")) !== false) {
-            while (($data = fgetcsv($handle, 1000, ",")) !== false) {
-                $rows[] = $data;
+        // Detectar extensión
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if ($extension === "csv" || $extension === "txt") {
+            // 🔹 Lectura CSV correcta
+            if (($handle = fopen($path, "r")) !== false) {
+                while (($data = fgetcsv($handle, 1000, ",")) !== false) {
+                    $rows[] = $data;
+                }
+                fclose($handle);
             }
-            fclose($handle);
+        } else {
+            // 🔹 Lectura XLSX correcta (evita caracteres extraños)
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray();
         }
 
         // Remover encabezado
@@ -116,15 +126,20 @@ class AsistenciaAlumnoController extends Controller
                 continue;
             }
 
-            // Insertar registro
-            AsistenciaAlumno::create([
-                "alumno_id" => $alumno_id,
-                "aula_id" => $aula_id,
-                "dia" => $dia,
-                "estado" => $estado,
-                "leccion_id" => $leccion_id,
-                "observaciones" => $observaciones,
-            ]);
+            AsistenciaAlumno::updateOrCreate(
+                // Search criteria
+                [
+                    "alumno_id" => $alumno_id
+                ],
+                // Values to update/create
+                [
+                    "aula_id" => $aula_id,
+                    "dia" => $dia,
+                    "estado" => $estado,
+                    "leccion_id" => $leccion_id,
+                    "observaciones" => $observaciones,
+                ]
+            );
 
             $insertados++;
         }
