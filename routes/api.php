@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AulaController;
@@ -20,6 +21,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // aquí tus recursos protegidos...
     Route::get('usuarios/list', [UserController::class, 'list']);
     Route::apiResource('usuarios', UserController::class);
+
+    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
     Route::apiResource('aulas', AulaController::class);
     Route::apiResource('anexos', AnexoController::class);
