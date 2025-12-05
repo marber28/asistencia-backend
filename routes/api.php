@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AnexoController;
 use App\Http\Controllers\Api\AlumnoController;
 use App\Http\Controllers\Api\MaestroController;
 use App\Http\Controllers\Api\LeccionController;
+use App\Http\Controllers\Api\AsistenciaAlumnoPDFController;
 use App\Http\Controllers\Api\AsistenciaAlumnoController;
 use App\Http\Controllers\Api\AsistenciaMaestroController;
 
@@ -37,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('lecciones', LeccionController::class)->parameters(['lecciones' => 'leccion']);
     Route::get('lecciones/{leccion}/download', [LeccionController::class, 'downloadLeccion']);
 
+    Route::get('/asistencia/pdf', [AsistenciaAlumnoPDFController::class, 'pdfMensual']);
     Route::apiResource('asistencia-alumno', AsistenciaAlumnoController::class);
     Route::get('aa/dia/{fecha}', [AsistenciaAlumnoController::class, 'porDia']);
     Route::get('aa/mes/{year}/{month}', [AsistenciaAlumnoController::class, 'porMes']);
