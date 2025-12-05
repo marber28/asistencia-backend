@@ -12,12 +12,23 @@ class StoreLeccionRequest extends FormRequest
     }
     public function rules()
     {
-        return [
-            'titulo' => 'required|string|max:255|unique:lecciones,titulo',
-            'fecha' => 'nullable|date',
-            'versiculo' => 'nullable|string|max:255',
-            'archivo_pdf' => 'nullable|mimes:pdf|max:10240'
-        ];
+        $isPost = FormRequest::isMethod('post');
+        if ($isPost) {
+            return [
+                'titulo' => 'required|string|max:255|unique:lecciones,titulo',
+                'fecha' => 'nullable|date',
+                'versiculo' => 'nullable|string|max:255',
+                'archivo_pdf' => 'nullable|mimes:pdf|max:10240'
+            ];
+        } else {
+            $leccion = $this->route('leccion');
+            return [
+                'titulo' => 'sometimes|required|string|max:255|unique:lecciones,titulo,' . $leccion->id,
+                'fecha' => 'nullable|date|date_format:Y-m-d',
+                'versiculo' => 'nullable|string|max:255',
+                'archivo_pdf' => 'nullable|mimes:pdf|max:10240'
+            ];
+        }
     }
 
     public function messages()

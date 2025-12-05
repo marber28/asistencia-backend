@@ -38,14 +38,9 @@ class LeccionController extends Controller
         return $leccion;
     }
 
-    public function update(Request $request, Leccion $leccion)
+    public function update(StoreLeccionRequest $request, Leccion $leccion)
     {
-        $data = $request->validate([
-            'titulo' => 'sometimes|required|string|max:255|unique:lecciones,titulo',$leccion->id,
-            'fecha' => 'nullable|date',
-            'versiculo' => 'nullable|string|max:255',
-            'archivo_pdf' => 'nullable|mimes:pdf|max:10240'
-        ]);
+        $data = $request->validated();
 
         if ($request->hasFile('archivo_pdf')) {
             // eliminar archivo anterior si existe
@@ -123,9 +118,9 @@ class LeccionController extends Controller
                 "versiculo" => $versiculo,
                 "archivo_pdf" => $archivo_pdf,
             ], [
-                'titulo' => 'required|string|max:255',
-                'fecha' => 'required|date|max:255',
-                'versiculo' => 'nullable|string',
+                'titulo' => 'required|string|max:255|unique:lecciones,titulo',
+                'fecha' => 'required|date|date_format:Y-m-d',
+                'versiculo' => 'nullable|string|max:255',
                 'archivo_pdf' => 'required'
             ]);
 
