@@ -129,12 +129,12 @@ class AsistenciaAlumnoController extends Controller
             AsistenciaAlumno::updateOrCreate(
                 // Search criteria
                 [
-                    "alumno_id" => $alumno_id
+                    "alumno_id" => $alumno_id,
+                    "dia" => $dia
                 ],
                 // Values to update/create
                 [
                     "aula_id" => $aula_id,
-                    "dia" => $dia,
                     "estado" => $estado,
                     "leccion_id" => $leccion_id,
                     "observaciones" => $observaciones,
