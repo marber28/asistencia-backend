@@ -39,12 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('lecciones/{leccion}/download', [LeccionController::class, 'downloadLeccion']);
 
     Route::get('/asistencia/pdf', [AsistenciaAlumnoPDFController::class, 'pdfMensual']);
+    Route::post('asistencia-alumno/massive', [AsistenciaAlumnoController::class, 'storeMassive']);
+    Route::get("asistencia-alumno/massive/template", [AsistenciaAlumnoController::class, "massiveTemplate"]);
     Route::apiResource('asistencia-alumno', AsistenciaAlumnoController::class);
     Route::get('aa/dia/{fecha}', [AsistenciaAlumnoController::class, 'porDia']);
     Route::get('aa/mes/{year}/{month}', [AsistenciaAlumnoController::class, 'porMes']);
     Route::get('aa/anio/{year}', [AsistenciaAlumnoController::class, 'porAnio']);
-    Route::post('asistencia-alumno/massive', [AsistenciaAlumnoController::class, 'storeMassive']);
-    Route::get("asistencia-alumno/massive/template", [AsistenciaAlumnoController::class, "massiveTemplate"]);
 
     Route::apiResource('asistencia-maestro', AsistenciaMaestroController::class);
     Route::get('am/dia/{fecha}', [AsistenciaMaestroController::class, 'porDia']);

@@ -52,7 +52,7 @@ class AsistenciaAlumnoController extends Controller
             });
         }
 
-        return $q->orderBy('dia', 'desc')->paginate(50);
+        return $q->orderBy('dia', 'desc')->paginate(10);
     }
 
 
@@ -62,6 +62,14 @@ class AsistenciaAlumnoController extends Controller
 
         $asistencia = AsistenciaAlumno::create($data);
         return response()->json($asistencia, 201);
+    }
+
+    public function update(StoreAsistenciaAlumnoRequest $request, AsistenciaAlumno $asistencia_alumno)
+    {
+        $data = $request->validated();
+
+        $asistencia_alumno->update($data);
+        return response()->json($asistencia_alumno, 201);
     }
 
     public function storeMassive(Request $request)

@@ -13,25 +13,47 @@ class StoreAsistenciaAlumnoRequest extends FormRequest
     }
     public function rules()
     {
-        $rules = [
-            //validacion de alumno_id requerida y unica por alumno_id, aula_id y dia
-            'alumno_id' => [
-                'required',
-                Rule::unique('asistencia_alumnos')->where(function ($query) {
-                    return $query->where('alumno_id', $this->alumno_id)
-                                 ->where('aula_id', $this->aula_id)
-                                 ->where('dia', $this->dia);
-                }),
-            ],
-            'aula_id' => 'required|exists:aulas,id',
-            'dia' => 'required|date:format:Y-m-d',
-            'estado' => 'required|in:presente,ausente,tarde,justificado',
-            'leccion_id' => 'required|exists:lecciones,id',
-            'observaciones' => 'nullable|string',
-        ];
+        $isPost = $this->isMethod('post');
+        if ($isPost) {
+            $rules = [
+                //validacion de alumno_id requerida y unica por alumno_id, aula_id y dia
+                'alumno_id' => [
+                    'required',
+                    Rule::unique('asistencia_alumnos')->where(function ($query) {
+                        return $query->where('alumno_id', $this->alumno_id)
+                            ->where('dia', $this->dia);
+                    }),
+                ],
+                'aula_id' => 'required|exists:aulas,id',
+                'dia' => 'required|date:format:Y-m-d',
+                'estado' => 'required|in:presente,ausente,tarde,justificado',
+                'leccion_id' => 'required|exists:lecciones,id',
+                'observaciones' => 'nullable|string',
+            ];
 
-        if($this->hasFile('lista_imagen')) {
-            $rules['lista_imagen'] = 'image|mimes:jpeg,png|max:100';
+            if ($this->hasFile('lista_imagen')) {
+                $rules['lista_imagen'] = 'image|mimes:jpeg,png|max:100';
+            }
+        } else {
+            $rules = [
+                //validacion de alumno_id requerida y unica por alumno_id, aula_id y dia
+                'alumno_id' => [
+                    'required',
+                    Rule::unique('asistencia_alumnos')->where(function ($query) {
+                        return $query->where('alumno_id', $this->alumno_id)
+                            ->where('dia', $this->dia);
+                    })->ignore($this->route('asistencia_alumno')->id),
+                ],
+                'aula_id' => 'required|exists:aulas,id',
+                'dia' => 'required|date:format:Y-m-d',
+                'estado' => 'required|in:presente,ausente,tarde,justificado',
+                'leccion_id' => 'required|exists:lecciones,id',
+                'observaciones' => 'nullable|string',
+            ];
+
+            if ($this->hasFile('lista_imagen')) {
+                $rules['lista_imagen'] = 'image|mimes:jpeg,png|max:100';
+            }
         }
 
         return $rules;
@@ -41,7 +63,7 @@ class StoreAsistenciaAlumnoRequest extends FormRequest
     {
         return [
             'alumno_id.required' => 'El campo alumno es obligatorio.',
-            'alumno_id.unique' => 'Ya existe una asistencia para este alumno en la misma aula y día.',
+            'alumno_id.unique' => 'Ya existe una asistencia para este alumno en el día seleccionado.',
             'aula_id.required' => 'El campo aula es obligatorio.',
             'aula_id.exists' => 'El aula seleccionada no es válida.',
             'dia.required' => 'El campo día es obligatorio.',
