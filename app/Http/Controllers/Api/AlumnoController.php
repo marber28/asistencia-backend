@@ -39,8 +39,9 @@ class AlumnoController extends Controller
     {
         $data = $request->validate([
             'nombres' => 'sometimes|required|string|max:255',
-            'apellidos' => 'sometimes|required|string|max:255',
+            'apellidos' => 'nullable|string|max:255',
             'anexo_id' => 'required|exists:anexos,id',
+            'genero' => 'sometimes|in:M,F',
             'fecha_nacimiento' => 'nullable|date:format:Y-m-d',
         ]);
         $alumno->update($data);
@@ -92,20 +93,23 @@ class AlumnoController extends Controller
             $nombres = $row[0] ?? null;
             $apellidos = $row[1] ?? null;
             $fecha_nacimiento = $row[2] ?? null;
-            $anexo_id = $row[3] ?? null;
+            $genero = $row[3] ?? null;
+            $anexo_id = $row[4] ?? null;
             $foto = $row[4] ?? null;
 
             $validator = \Validator::make([
                 "nombres" => $nombres,
                 "apellidos" => $apellidos,
                 "fecha_nacimiento" => $fecha_nacimiento,
+                "genero" => $genero,
                 "anexo_id" => $anexo_id,
                 "foto" => $foto,
             ], [
                 'nombres' => 'required|string|max:255',
-                'apellidos' => 'required|string|max:255',
-                'fecha_nacimiento' => 'nullable|date',
-                'anexo_id' => 'required|exists:anexos,id',
+                'apellidos' => 'nullable|string|max:255',
+                'fecha_nacimiento' => 'nullable|date:format:Y-m-d',
+                'genero' => 'sometimes|in:M,F',
+                'anexo_id' => 'sometimes|exists:anexos,id',
                 'foto' => 'nullable'
             ]);
 
@@ -123,6 +127,7 @@ class AlumnoController extends Controller
                 // Values to update/create
                 [
                     "fecha_nacimiento" => $fecha_nacimiento,
+                    "genero" => $genero,
                     "anexo_id" => $anexo_id,
                     "foto" => $foto
                 ]
@@ -147,6 +152,7 @@ class AlumnoController extends Controller
             "nombres",
             "apellidos",
             "fecha_nacimiento",
+            "genero",
             "anexo_id",
             "foto",
         ];
@@ -161,7 +167,7 @@ class AlumnoController extends Controller
 
         // Fila de ejemplo opcional
         $sheet->fromArray([
-            ['Carlos', 'Rodriguez', "2025-01-15", 1, '/ruta']
+            ['Carlos', 'Rodriguez', "2025-01-15", 'M', 1, '/ruta']
         ], NULL, 'A2');
 
         // Generar archivo

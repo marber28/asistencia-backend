@@ -65,6 +65,14 @@ class AsistenciaAlumnoPDFController extends Controller
             ->whereMonth('dia', $mes)
             ->get();
 
+        // VALIDAR SI NO EXISTEN ASISTENCIAS
+        if ($asistencias->isEmpty() || $asistencias->every(fn($a) => $a->asistencias->isEmpty())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay registros de asistencia para generar el PDF.'
+            ], 400);
+        }
+
         /* -----------------------------------------------------
          * 3. MAPEAR ASISTENCIAS → acceso instantáneo en Blade
          * -----------------------------------------------------*/

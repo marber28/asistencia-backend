@@ -7,8 +7,9 @@ return new class extends Migration {
         Schema::create('alumnos', function (Blueprint $table){
             $table->id();
             $table->string('nombres');
-            $table->string('apellidos');
+            $table->string('apellidos')->nullable();
             $table->date('fecha_nacimiento')->nullable();
+            $table->enum('genero', ['M','F']);
             $table->string('foto')->nullable();
             //campo foreign key de la tabla anexos
             $table->unsignedBigInteger('anexo_id');

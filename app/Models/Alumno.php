@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Alumno extends Model
 {
     use HasFactory;
-    protected $fillable = ['nombres', 'apellidos', 'fecha_nacimiento', 'anexo_id', 'foto'];
+    protected $fillable = ['nombres', 'apellidos', 'fecha_nacimiento', 'genero', 'anexo_id', 'foto'];
     public function asistencias()
     {
         return $this->hasMany(AsistenciaAlumno::class);

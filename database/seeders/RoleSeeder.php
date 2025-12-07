@@ -38,5 +38,15 @@ class RoleSeeder extends Seeder
             'password' => bcrypt('123456')
         ]);
         $pl->assignRole('responsable');
+
+        $pal = User::firstOrCreate(['email' => 'altotrujillo@asistencia.com'], [
+            'name' => 'Antonio',
+            'lastname' => 'Cordova',
+            'in_anexo' => true,
+            'enabled' => true,
+            'visible' => true,
+            'password' => bcrypt('123456')
+        ]);
+        $pal->assignRole('responsable');
     }
 }
