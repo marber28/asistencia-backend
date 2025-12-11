@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('aulas', AulaController::class);
     Route::apiResource('anexos', AnexoController::class);
+    Route::post('alumnos/{alumnoId}/asignar-aula', [AlumnoController::class, 'asignarAula']);
     Route::apiResource('alumnos', AlumnoController::class);
     Route::post('alumnos/massive', [AlumnoController::class, 'storeMassive']);
     Route::get("alumnos/massive/template", [AlumnoController::class, "massiveTemplate"]);

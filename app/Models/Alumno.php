@@ -18,4 +18,14 @@ class Alumno extends Model
     {
         return $this->belongsTo(Anexo::class);
     }
+
+    public function aulas()
+    {
+        return $this->hasMany(AlumnoAula::class)->orderByDesc('current');
+    }
+
+    public function aulaActual()
+    {
+        return $this->hasOne(AlumnoAula::class)->where('current', true);
+    }
 }
