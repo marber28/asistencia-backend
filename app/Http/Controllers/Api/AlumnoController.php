@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreAlumnoRequest;
 use App\Models\Alumno;
+use App\Models\AlumnoAula;
+use App\Models\Aula;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -14,7 +16,8 @@ class AlumnoController extends Controller
 {
     public function index(Request $request)
     {
-        $q = Alumno::with('anexo');
+        //$q = Alumno::with('anexo');
+        $q = Alumno::with(['aulaActual.aula', 'aulas.aula', 'anexo']);
         if ($request->filled('search')) {
             $q->where('nombres', 'like', '%' . $request->search . '%')
                 ->orWhere('apellidos', 'like', '%' . $request->search . '%');
@@ -48,6 +51,37 @@ class AlumnoController extends Controller
         return response()->json($alumno);
     }
 
+    public function asignarAula(Request $request, $alumnoId)
+    {
+        $data = $request->validate([
+            'aula_id' => 'required|exists:aulas,id',
+            'current' => 'boolean'
+        ]);
+
+        // Si el nuevo es current, desactivar anteriores
+        if (!empty($data['current']) && $data['current']) {
+            AlumnoAula::where('alumno_id', $alumnoId)
+                ->update(['current' => false]);
+        }
+
+        $registro = AlumnoAula::updateOrCreate(
+            // Search criteria
+            [
+                'alumno_id' => $alumnoId,
+                'aula_id' => $data['aula_id'],
+            ],
+            // Values to update/create
+            [
+                'current' => $data['current'] ?? false,
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Aula asignada correctamente',
+            'data' => $registro->load('aula')
+        ]);
+    }
+
     public function destroy(Alumno $alumno)
     {
         $alumno->delete();
@@ -58,9 +92,15 @@ class AlumnoController extends Controller
     {
         $request->validate([
             "file" => "required|mimes:xlsx,csv,txt|max:4096",
+            "anexo_id" => "required|exists:anexos,id",
+        ], [
+            'file.required' => 'Seleccionar el archivo a cargar',
+            'file.mimes' => 'El archivo a cargar debe ser: xlsx, csv, txt',
+            'anexo_id.required' => 'Elegir el anexo',
         ]);
 
         $file = $request->file('file');
+        $anexo_id = $request->input('anexo_id');
         $path = $file->getRealPath();
 
         $rows = [];
@@ -89,27 +129,29 @@ class AlumnoController extends Controller
         $errores = [];
         $insertados = 0;
 
+        $aulas = Aula::all();
+
         foreach ($rows as $i => $row) {
             $nombres = $row[0] ?? null;
             $apellidos = $row[1] ?? null;
             $fecha_nacimiento = $row[2] ?? null;
-            $genero = $row[3] ?? null;
-            $anexo_id = $row[4] ?? null;
-            $foto = $row[4] ?? null;
+            $edad = $row[3] ?? null;
+            $genero = $row[4] ?? null;
+            $foto = $row[5] ?? null;
 
             $validator = \Validator::make([
                 "nombres" => $nombres,
                 "apellidos" => $apellidos,
                 "fecha_nacimiento" => $fecha_nacimiento,
+                "edad" => $edad,
                 "genero" => $genero,
-                "anexo_id" => $anexo_id,
                 "foto" => $foto,
             ], [
                 'nombres' => 'required|string|max:255',
                 'apellidos' => 'nullable|string|max:255',
                 'fecha_nacimiento' => 'nullable|date:format:Y-m-d',
                 'genero' => 'sometimes|in:M,F',
-                'anexo_id' => 'sometimes|exists:anexos,id',
+                'edad' => 'nullable|integer',
                 'foto' => 'nullable'
             ]);
 
@@ -118,7 +160,7 @@ class AlumnoController extends Controller
                 continue;
             }
 
-            Alumno::updateOrCreate(
+            $alumno = Alumno::updateOrCreate(
                 // Search criteria
                 [
                     'nombres' => $nombres,
@@ -132,6 +174,31 @@ class AlumnoController extends Controller
                     "foto" => $foto
                 ]
             );
+
+            // Buscar aula según edad
+            if (!empty($edad) && is_numeric($edad)) {
+                $aulaAsignada = $aulas->first(function ($aula) use ($edad) {
+                    return $edad >= $aula->edad_min && $edad <= $aula->edad_max;
+                });
+            }
+
+            // Si se encontró aula → asignar
+            if ($aulaAsignada) {
+                // ⚠️ Desactivar current anteriores
+                AlumnoAula::where('alumno_id', $alumno->id)
+                    ->update(['current' => false]);
+
+                // Crear o actualizar asignación
+                AlumnoAula::updateOrCreate(
+                    [
+                        'alumno_id' => $alumno->id,
+                        'aula_id'   => $aulaAsignada->id,
+                    ],
+                    [
+                        'current' => true,
+                    ]
+                );
+            }
 
             $insertados++;
         }
@@ -153,7 +220,6 @@ class AlumnoController extends Controller
             "apellidos",
             "fecha_nacimiento",
             "genero",
-            "anexo_id",
             "foto",
         ];
 
@@ -167,7 +233,7 @@ class AlumnoController extends Controller
 
         // Fila de ejemplo opcional
         $sheet->fromArray([
-            ['Carlos', 'Rodriguez', "2025-01-15", 'M', 1, '/ruta']
+            ['Carlos', 'Rodriguez', "2025-01-15", 10, 'M', '/ruta']
         ], NULL, 'A2');
 
         // Generar archivo
