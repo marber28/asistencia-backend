@@ -24,10 +24,8 @@ class StoreAsistenciaAlumnoRequest extends FormRequest
                             ->where('dia', $this->dia);
                     }),
                 ],
-                'aula_id' => 'required|exists:aulas,id',
                 'dia' => 'required|date:format:Y-m-d',
                 'estado' => 'required|in:presente,ausente,tarde,justificado',
-                'leccion_id' => 'required|exists:lecciones,id',
                 'observaciones' => 'nullable|string',
             ];
 
@@ -44,10 +42,8 @@ class StoreAsistenciaAlumnoRequest extends FormRequest
                             ->where('dia', $this->dia);
                     })->ignore($this->route('asistencia_alumno')->id),
                 ],
-                'aula_id' => 'required|exists:aulas,id',
                 'dia' => 'required|date:format:Y-m-d',
                 'estado' => 'required|in:presente,ausente,tarde,justificado',
-                'leccion_id' => 'required|exists:lecciones,id',
                 'observaciones' => 'nullable|string',
             ];
 

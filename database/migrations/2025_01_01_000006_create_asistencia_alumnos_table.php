@@ -7,12 +7,12 @@ return new class extends Migration {
         Schema::create('asistencia_alumnos', function (Blueprint $table){
             $table->id();
             $table->foreignId('alumno_id')->constrained('alumnos')->onDelete('cascade');
-            $table->foreignId('aula_id')->constrained('aulas')->onDelete('cascade');
+            //$table->foreignId('aula_id')->constrained('aulas')->onDelete('cascade');
             $table->date('dia');
             $table->enum('estado', ['presente','ausente','tarde','justificado'])->default('presente');
             $table->string('lista_imagen')->nullable();
             $table->text('observaciones')->nullable();
-            $table->foreignId('leccion_id')->nullable()->constrained('lecciones')->nullOnDelete();
+            /* $table->foreignId('leccion_id')->nullable()->constrained('lecciones')->nullOnDelete();*/
             $table->timestamps();
             $table->unique(['alumno_id','dia']);
         });

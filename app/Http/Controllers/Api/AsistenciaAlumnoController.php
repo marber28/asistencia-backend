@@ -6,11 +6,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAsistenciaAlumnoRequest;
 use App\Models\AsistenciaAlumno;
+use App\Models\Alumno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AsistenciaAlumnoController extends Controller
 {
@@ -31,7 +33,7 @@ class AsistenciaAlumnoController extends Controller
 
     public function index(Request $request)
     {
-        $q = AsistenciaAlumno::with(['alumno', 'aula', 'leccion']);
+        $q = AsistenciaAlumno::with(['alumno', 'alumno.aulaActual.aula']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -43,11 +45,8 @@ class AsistenciaAlumnoController extends Controller
                         $qa->where('nombres', 'like', "%$search%")
                             ->orWhere('apellidos', 'like', "%$search%");
                     })
-                    ->orWhereHas('aula', function ($qa) use ($search) {
-                        $qa->where('nombre', 'like', "%$search%");
-                    })
-                    ->orWhereHas('leccion', function ($ql) use ($search) {
-                        $ql->where('titulo', 'like', "%$search%");
+                    ->orWhereHas('alumno.aulaActual.aula', function ($qa) use ($search) {
+                        $qa->where('nombre', 'like', "%{$search}%");
                     });
             });
         }
@@ -70,6 +69,161 @@ class AsistenciaAlumnoController extends Controller
 
         $asistencia_alumno->update($data);
         return response()->json($asistencia_alumno, 201);
+    }
+
+    public function importar(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls'
+        ]);
+
+        $hoja = Excel::toArray([], $request->file('file'))[0];
+
+        if (count($hoja) < 3) {
+            return response()->json(['error' => 'Excel inválido'], 422);
+        }
+
+        // Cabeceras
+        $filaMeses = $hoja[0];
+        $filaDias  = $hoja[1];
+
+        // Mapa meses
+        $mapMeses = [
+            'ENERO' => 1, 'FEBRERO' => 2, 'MARZO' => 3,
+            'ABRIL' => 4, 'MAYO' => 5, 'JUNIO' => 6,
+            'JULIO' => 7, 'AGOSTO' => 8, 'SEPTIEMBRE' => 9,
+            'OCTUBRE' => 10, 'NOVIEMBRE' => 11, 'DICIEMBRE' => 12,
+        ];
+
+        $anio = date('Y');
+
+        // 🔢 Contadores
+        $insertados = 0;
+        $presentes  = 0;
+        $errores    = 0;
+        $erroresDet = [];
+
+        // 🔥 Cache alumnos (normalizados)
+        $alumnos = Alumno::select(
+                'id',
+                DB::raw("
+                    REPLACE(
+                        REPLACE(
+                            REPLACE(
+                                REPLACE(
+                                    REPLACE(
+                                        REPLACE(
+                                            UPPER(TRIM(CONCAT(nombres,' ',apellidos))),
+                                            'Á','A'
+                                        ),
+                                        'É','E'
+                                    ),
+                                    'Í','I'
+                                ),
+                                'Ó','O'
+                            ),
+                            'Ú','U'
+                        ),
+                        'Ñ','N'
+                    ) AS nombre_norm
+                ")
+            )
+            ->get()
+            ->pluck('id', 'nombre_norm')
+            ->toArray();
+
+        DB::beginTransaction();
+
+        try {
+
+            // Desde fila 3 (nombres)
+            for ($i = 2; $i < count($hoja); $i++) {
+
+                $fila = $hoja[$i];
+
+                $nombreExcel = $this->normalizarTexto($fila[1] ?? '');
+
+                if ($nombreExcel === '') {
+                    $errores++;
+                    $erroresDet[] = "Fila ".($i+1).": nombre vacío";
+                    continue;
+                }
+
+                if (!isset($alumnos[$nombreExcel])) {
+                    $errores++;
+                    $erroresDet[] = "Fila ".($i+1).": alumno no encontrado ({$nombreExcel})";
+                    continue;
+                }
+
+                $idAlumno = $alumnos[$nombreExcel];
+
+                // Columnas de asistencia (desde D)
+                for ($col = 3; $col < count($fila); $col++) {
+
+                    $valor = trim($fila[$col] ?? '');
+                    if ($valor === '') continue;
+
+                    $mesTexto = strtoupper(trim($filaMeses[$col] ?? ''));
+                    if (!isset($mapMeses[$mesTexto])) continue;
+
+                    $dia = intval($filaDias[$col] ?? 0);
+                    if ($dia <= 0) continue;
+
+                    $fecha = sprintf(
+                        '%04d-%02d-%02d',
+                        $anio,
+                        $mapMeses[$mesTexto],
+                        $dia
+                    );
+
+                    $esPresente = strtoupper($valor) === 'X';
+
+                    AsistenciaAlumno::updateOrCreate(
+                        [
+                            'alumno_id' => $idAlumno,
+                            'dia'       => $fecha
+                        ],
+                        [
+                            'estado'        => $esPresente ? 'presente' : null,
+                            'observaciones' => $esPresente ? 'asistió' : 'no asistió'
+                        ]
+                    );
+
+                    $insertados++;
+                    if ($esPresente) $presentes++;
+                }
+            }
+
+            DB::commit();
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json([
+            'success'          => true,
+            'insertados'       => $insertados,
+            'total_presentes'  => $presentes,
+            'total_errores'    => $errores,
+            'errores'          => $erroresDet
+        ]);
+    }
+
+    // 🔤 Normalización de texto
+    private function normalizarTexto($texto)
+    {
+        $texto = trim(mb_strtoupper($texto, 'UTF-8'));
+
+        $buscar  = ['Á','É','Í','Ó','Ú','Ü','Ñ'];
+        $reempl  = ['A','E','I','O','U','U','N'];
+
+        return str_replace($buscar, $reempl, $texto);
     }
 
     public function storeMassive(Request $request)
@@ -166,11 +320,10 @@ class AsistenciaAlumnoController extends Controller
         // ENCABEZADOS
         $columns = [
             "alumno_id",
-            "aula_id",
             "dia",
             "estado",
-            "leccion_id",
-            "observaciones",
+            //"leccion_id",
+            "observaciones"
         ];
 
         $sheet->fromArray([$columns], NULL, 'A1');
