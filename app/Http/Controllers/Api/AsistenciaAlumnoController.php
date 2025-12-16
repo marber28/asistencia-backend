@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAsistenciaAlumnoRequest;
 use App\Models\AsistenciaAlumno;
 use App\Models\Alumno;
+use App\Models\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -136,6 +137,16 @@ class AsistenciaAlumnoController extends Controller
 
         try {
 
+            Log::create([
+                'vista'   => 'importacion_asistencia',
+                'detalle' => 'Inicio de importación de asistencia',
+                'type' => 'info',
+                'payload' => [
+                    'archivo' => $request->file('file')->getClientOriginalName(),
+                    'fecha'   => now()->toDateTimeString(),
+                ],
+            ]);
+
             // Desde fila 3 (nombres)
             for ($i = 2; $i < count($hoja); $i++) {
 
@@ -196,9 +207,33 @@ class AsistenciaAlumnoController extends Controller
 
             DB::commit();
 
+            Log::create([
+                'vista'   => 'importacion_asistencia',
+                'detalle' => 'Importación finalizada',
+                'type' => 'info',
+                'payload' => [
+                    'insertados'      => $insertados,
+                    'presentes'       => $presentes,
+                    'errores'         => $errores,
+                    'detalle_errores' => $erroresDet,
+                ],
+            ]);
+
         } catch (\Throwable $e) {
 
             DB::rollBack();
+
+            Log::create([
+                'vista'   => 'importacion_asistencia',
+                'detalle' => 'Error en importación de asistencia',
+                'type' => 'error',
+                'payload' => [
+                    'exception' => $e->getMessage(),
+                    'line'      => $e->getLine(),
+                    'file'      => $e->getFile(),
+                ],
+            ]);
+
 
             return response()->json([
                 'success' => false,

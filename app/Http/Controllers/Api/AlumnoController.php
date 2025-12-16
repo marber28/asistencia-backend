@@ -8,6 +8,7 @@ use App\Http\Requests\StoreAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\AlumnoAula;
 use App\Models\Aula;
+use App\Models\Log;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -102,6 +103,16 @@ class AlumnoController extends Controller
         $file = $request->file('file');
         $anexo_id = $request->input('anexo_id');
         $path = $file->getRealPath();
+
+        Log::create([
+            'vista'   => 'importacion_alumnos',
+            'detalle' => 'Inicio de importación de alumnos',
+            'type' => 'info',
+            'payload' => [
+                'archivo' => $file->getClientOriginalName(),
+                'fecha'   => now()->toDateTimeString(),
+            ],
+        ]);
 
         $rows = [];
 
@@ -202,6 +213,16 @@ class AlumnoController extends Controller
 
             $insertados++;
         }
+
+        Log::create([
+            'vista'   => 'importacion_alumnnos',
+            'detalle' => 'Importación finalizada',
+            'type' => 'info',
+            'payload' => [
+                'insertados'      => $insertados,
+                'errores'         => $errores,
+            ],
+        ]);
 
         return response()->json([
             "insertados" => $insertados,

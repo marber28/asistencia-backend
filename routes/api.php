@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\LeccionController;
 use App\Http\Controllers\Api\AsistenciaAlumnoPDFController;
 use App\Http\Controllers\Api\AsistenciaAlumnoController;
 use App\Http\Controllers\Api\AsistenciaMaestroController;
+use App\Http\Controllers\Api\LogController;
 
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\ReportController;
@@ -54,4 +55,10 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::post('upload/leccion', [UploadController::class,'uploadLeccionPdf']);
     Route::get('reports/download', [ReportController::class,'downloadMonthly']);
+
+    Route::prefix('logs')->group(function () {
+        Route::get('/', [LogController::class, 'index']);
+        Route::post('/', [LogController::class, 'store']);
+        Route::get('{log}', [LogController::class, 'show']);
+    });
 });
