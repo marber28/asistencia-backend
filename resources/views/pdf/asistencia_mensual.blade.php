@@ -13,7 +13,7 @@
         body {
             font-family: DejaVu Sans, sans-serif;
             margin: 0;
-            padding: 30px;
+            padding: 50px 30px;
             background: #d4e4ff;
             background-image: url('{{ public_path("pdf_background.png") }}');
             background-size: cover;
@@ -33,13 +33,15 @@
             text-transform: uppercase;
             color: #5c6b88;
             margin: 0 0 10px 0;
+            padding: 0;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            padding: 0 !important;
         }
 
         .logo {
@@ -76,6 +78,7 @@
         }
 
         td.name {
+            font-size: 15px;
             text-align: left;
         }
 
@@ -96,8 +99,9 @@
             <thead>
                 <tr>
                     <th>N°</th>
-                    <th style="min-width: 160px;">APELLIDOS Y NOMBRES</th>
+                    <th style="min-width:160px">APELLIDOS Y NOMBRES</th>
 
+                    {{-- CABECERAS = 5 SEMANAS --}}
                     @foreach ($diasDelMes as $dia)
                     <th>{{ $dia }}</th>
                     @endforeach
@@ -110,23 +114,19 @@
                 @foreach ($alumnos as $i => $alumno)
                 <tr>
                     <td width="30">{{ $i + 1 }}</td>
-                    <td class="name">{{ $alumno->apellidos }} {{ $alumno->nombres }}</td>
+                    <td class="name">{{ $alumno['nombre'] }}</td>
 
-                    @php
-                    $total = 0;
-                    @endphp
+                    @php $total = 0; @endphp
 
                     @foreach ($diasDelMes as $dia)
                     @php
-                    $asistencia = $map[$alumno->id][$dia] ?? null;
-                    $estado = $asistencia->estado ?? '';
+                    $estado = $map[$alumno['id']][$dia] ?? '';
                     if ($estado === 'presente') $total++;
                     @endphp
-
-                    <td class="estado" width="30">{{ $estados[$estado] }}</td>
+                    <td class="estado" width="25">{{ $estados[$estado] }}</td>
                     @endforeach
 
-                    <td class="estado" width="35">{{ $total }}</td>
+                    <td class="estado">{{ $total }}</td>
                 </tr>
                 @endforeach
             </tbody>

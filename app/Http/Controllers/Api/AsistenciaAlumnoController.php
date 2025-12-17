@@ -84,54 +84,87 @@ class AsistenciaAlumnoController extends Controller
             return response()->json(['error' => 'Excel inválido'], 422);
         }
 
-        // Cabeceras
+        // ─────────────────────────────
+        // CABECERAS
+        // ─────────────────────────────
         $filaMeses = $hoja[0];
         $filaDias  = $hoja[1];
 
-        // Mapa meses
         $mapMeses = [
-            'ENERO' => 1, 'FEBRERO' => 2, 'MARZO' => 3,
-            'ABRIL' => 4, 'MAYO' => 5, 'JUNIO' => 6,
-            'JULIO' => 7, 'AGOSTO' => 8, 'SEPTIEMBRE' => 9,
-            'OCTUBRE' => 10, 'NOVIEMBRE' => 11, 'DICIEMBRE' => 12,
+            'ENERO' => 1,
+            'FEBRERO' => 2,
+            'MARZO' => 3,
+            'ABRIL' => 4,
+            'MAYO' => 5,
+            'JUNIO' => 6,
+            'JULIO' => 7,
+            'AGOSTO' => 8,
+            'SEPTIEMBRE' => 9,
+            'OCTUBRE' => 10,
+            'NOVIEMBRE' => 11,
+            'DICIEMBRE' => 12,
         ];
 
         $anio = date('Y');
 
-        // 🔢 Contadores
-        $insertados = 0;
-        $presentes  = 0;
-        $errores    = 0;
-        $erroresDet = [];
+        // ─────────────────────────────
+        // 🔥 FIX: PROPAGAR MESES (CELDAS COMBINADAS)
+        // ─────────────────────────────
+        $mesActual = null;
+        for ($c = 0; $c < count($filaMeses); $c++) {
+            $valor = strtoupper(trim($filaMeses[$c] ?? ''));
 
-        // 🔥 Cache alumnos (normalizados)
+            if ($valor !== '' && isset($mapMeses[$valor])) {
+                $mesActual = $valor;
+            } else {
+                $filaMeses[$c] = $mesActual;
+            }
+        }
+
+        // ─────────────────────────────
+        // CACHE ALUMNOS NORMALIZADOS
+        // ─────────────────────────────
         $alumnos = Alumno::select(
-                'id',
-                DB::raw("
+            'id',
+            DB::raw("
+                REPLACE(
                     REPLACE(
                         REPLACE(
                             REPLACE(
                                 REPLACE(
                                     REPLACE(
-                                        REPLACE(
-                                            UPPER(TRIM(CONCAT(nombres,' ',apellidos))),
-                                            'Á','A'
-                                        ),
-                                        'É','E'
+                                        UPPER(TRIM(CONCAT(nombres,' ',apellidos))),
+                                        'Á','A'
                                     ),
-                                    'Í','I'
+                                    'É','E'
                                 ),
-                                'Ó','O'
+                                'Í','I'
                             ),
-                            'Ú','U'
+                            'Ó','O'
                         ),
-                        'Ñ','N'
-                    ) AS nombre_norm
-                ")
-            )
+                        'Ú','U'
+                    ),
+                    'Ñ','N'
+                ) AS nombre_norm
+            ")
+        )
             ->get()
             ->pluck('id', 'nombre_norm')
             ->toArray();
+
+        // ─────────────────────────────
+        // CONTADORES
+        // ─────────────────────────────
+        $insertados = 0;
+        $presentes  = 0;
+        $errores    = 0;
+        $erroresDet = [];
+
+        // ─────────────────────────────
+        // BATCH DATA
+        // ─────────────────────────────
+        $batch = [];
+        $now = now();
 
         DB::beginTransaction();
 
@@ -147,7 +180,9 @@ class AsistenciaAlumnoController extends Controller
                 ],
             ]);
 
-            // Desde fila 3 (nombres)
+            // ─────────────────────────────
+            // RECORRER ALUMNOS (DESDE FILA 3)
+            // ─────────────────────────────
             for ($i = 2; $i < count($hoja); $i++) {
 
                 $fila = $hoja[$i];
@@ -156,26 +191,28 @@ class AsistenciaAlumnoController extends Controller
 
                 if ($nombreExcel === '') {
                     $errores++;
-                    $erroresDet[] = "Fila ".($i+1).": nombre vacío";
+                    $erroresDet[] = "Fila " . ($i + 1) . ": nombre vacío";
                     continue;
                 }
 
                 if (!isset($alumnos[$nombreExcel])) {
                     $errores++;
-                    $erroresDet[] = "Fila ".($i+1).": alumno no encontrado ({$nombreExcel})";
+                    $erroresDet[] = "Fila " . ($i + 1) . ": alumno no encontrado ({$nombreExcel})";
                     continue;
                 }
 
                 $idAlumno = $alumnos[$nombreExcel];
 
-                // Columnas de asistencia (desde D)
+                // ─────────────────────────────
+                // COLUMNAS DE ASISTENCIA (DESDE D)
+                // ─────────────────────────────
                 for ($col = 3; $col < count($fila); $col++) {
 
                     $valor = trim($fila[$col] ?? '');
                     if ($valor === '') continue;
 
-                    $mesTexto = strtoupper(trim($filaMeses[$col] ?? ''));
-                    if (!isset($mapMeses[$mesTexto])) continue;
+                    $mesTexto = $filaMeses[$col] ?? null;
+                    if (!$mesTexto || !isset($mapMeses[$mesTexto])) continue;
 
                     $dia = intval($filaDias[$col] ?? 0);
                     if ($dia <= 0) continue;
@@ -189,20 +226,29 @@ class AsistenciaAlumnoController extends Controller
 
                     $esPresente = strtoupper($valor) === 'X';
 
-                    AsistenciaAlumno::updateOrCreate(
-                        [
-                            'alumno_id' => $idAlumno,
-                            'dia'       => $fecha
-                        ],
-                        [
-                            'estado'        => $esPresente ? 'presente' : null,
-                            'observaciones' => $esPresente ? 'asistió' : 'no asistió'
-                        ]
-                    );
+                    $batch[] = [
+                        'alumno_id'     => $idAlumno,
+                        'dia'           => $fecha,
+                        'estado'        => $esPresente ? 'presente' : null,
+                        'observaciones' => $esPresente ? 'asistió' : 'no asistió',
+                        'created_at'    => $now,
+                        'updated_at'    => $now,
+                    ];
 
                     $insertados++;
                     if ($esPresente) $presentes++;
                 }
+            }
+
+            // ─────────────────────────────
+            // 🔥 BATCH UPSERT
+            // ─────────────────────────────
+            if (!empty($batch)) {
+                AsistenciaAlumno::upsert(
+                    $batch,
+                    ['alumno_id', 'dia'], // clave única
+                    ['estado', 'observaciones', 'updated_at']
+                );
             }
 
             DB::commit();
@@ -219,6 +265,13 @@ class AsistenciaAlumnoController extends Controller
                 ],
             ]);
 
+            return response()->json([
+                'success'          => true,
+                'insertados'       => $insertados,
+                'total_presentes'  => $presentes,
+                'total_errores'    => $errores,
+                'errores'          => $erroresDet
+            ]);
         } catch (\Throwable $e) {
 
             DB::rollBack();
@@ -234,20 +287,11 @@ class AsistenciaAlumnoController extends Controller
                 ],
             ]);
 
-
             return response()->json([
                 'success' => false,
                 'error'   => $e->getMessage()
             ], 500);
         }
-
-        return response()->json([
-            'success'          => true,
-            'insertados'       => $insertados,
-            'total_presentes'  => $presentes,
-            'total_errores'    => $errores,
-            'errores'          => $erroresDet
-        ]);
     }
 
     // 🔤 Normalización de texto
@@ -255,8 +299,8 @@ class AsistenciaAlumnoController extends Controller
     {
         $texto = trim(mb_strtoupper($texto, 'UTF-8'));
 
-        $buscar  = ['Á','É','Í','Ó','Ú','Ü','Ñ'];
-        $reempl  = ['A','E','I','O','U','U','N'];
+        $buscar  = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ü', 'Ñ'];
+        $reempl  = ['A', 'E', 'I', 'O', 'U', 'U', 'N'];
 
         return str_replace($buscar, $reempl, $texto);
     }
