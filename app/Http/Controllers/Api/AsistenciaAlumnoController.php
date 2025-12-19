@@ -34,7 +34,7 @@ class AsistenciaAlumnoController extends Controller
 
     public function index(Request $request)
     {
-        $q = AsistenciaAlumno::with(['alumno', 'alumno.aulaActual.aula']);
+        $q = AsistenciaAlumno::with(['alumno', 'alumno.anexo', 'alumno.aulaActual.aula']);
         $perPage = $request->get('per_page', 10);
 
         if ($request->filled('search')) {
