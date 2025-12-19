@@ -35,6 +35,7 @@ class AsistenciaAlumnoController extends Controller
     public function index(Request $request)
     {
         $q = AsistenciaAlumno::with(['alumno', 'alumno.aulaActual.aula']);
+        $perPage = $request->get('per_page', 10);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -52,7 +53,7 @@ class AsistenciaAlumnoController extends Controller
             });
         }
 
-        return $q->orderBy('dia', 'desc')->paginate(10);
+        return $q->orderBy('dia', 'desc')->paginate($perPage);
     }
 
 

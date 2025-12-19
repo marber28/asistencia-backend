@@ -13,7 +13,6 @@ class AsistenciaAlumno extends Model
     protected function casts(): array
     {
         return [
-            'dia' => 'date',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

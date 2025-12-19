@@ -18,12 +18,14 @@ class AlumnoController extends Controller
     public function index(Request $request)
     {
         //$q = Alumno::with('anexo');
+        $perPage = $request->get('per_page', 10);
+
         $q = Alumno::with(['aulaActual.aula', 'aulas.aula', 'anexo']);
         if ($request->filled('search')) {
             $q->where('nombres', 'like', '%' . $request->search . '%')
                 ->orWhere('apellidos', 'like', '%' . $request->search . '%');
         }
-        return $q->paginate(20);
+        return $q->paginate($perPage);
     }
 
     public function store(StoreAlumnoRequest $request)
