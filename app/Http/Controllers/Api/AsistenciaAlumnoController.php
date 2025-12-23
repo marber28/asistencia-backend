@@ -75,106 +75,135 @@ class AsistenciaAlumnoController extends Controller
 
     public function importar(Request $request)
     {
+        \Log::debug('Importando asistencia de alumnos desde Excel');
+
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls'
+            "file" => "required|mimes:xlsx,csv,txt|max:4096",
+        ], [
+            'file.required' => 'Seleccionar el archivo a cargar',
+            'file.mimes' => 'El archivo a cargar debe ser: xlsx, csv, txt',
         ]);
 
-        $hoja = Excel::toArray([], $request->file('file'))[0];
+        \Log::debug('Pasa la validación del archivo');
 
-        if (count($hoja) < 3) {
-            return response()->json(['error' => 'Excel inválido'], 422);
-        }
+        DB::beginTransaction();
 
-        // ─────────────────────────────
-        // CABECERAS
-        // ─────────────────────────────
-        $filaMeses = $hoja[0];
-        $filaDias  = $hoja[1];
+        $file = $request->file('file');
+        $path = $file->getRealPath();
 
-        $mapMeses = [
-            'ENERO' => 1,
-            'FEBRERO' => 2,
-            'MARZO' => 3,
-            'ABRIL' => 4,
-            'MAYO' => 5,
-            'JUNIO' => 6,
-            'JULIO' => 7,
-            'AGOSTO' => 8,
-            'SEPTIEMBRE' => 9,
-            'OCTUBRE' => 10,
-            'NOVIEMBRE' => 11,
-            'DICIEMBRE' => 12,
-        ];
+        try {
+            // ─────────────────────────────
+            // 🔥 FIX 1: toArray DENTRO del try
+            // ─────────────────────────────
 
-        $anio = date('Y');
+            // Detectar extensión
+            $extension = strtolower($file->getClientOriginalExtension());
 
-        // ─────────────────────────────
-        // 🔥 FIX: PROPAGAR MESES (CELDAS COMBINADAS)
-        // ─────────────────────────────
-        $mesActual = null;
-        for ($c = 0; $c < count($filaMeses); $c++) {
-            $valor = strtoupper(trim($filaMeses[$c] ?? ''));
-
-            if ($valor !== '' && isset($mapMeses[$valor])) {
-                $mesActual = $valor;
+            if ($extension === "csv" || $extension === "txt") {
+                // 🔹 Lectura CSV correcta
+                if (($handle = fopen($path, "r")) !== false) {
+                    while (($data = fgetcsv($handle, 1000, ",")) !== false) {
+                        $rows[] = $data;
+                    }
+                    fclose($handle);
+                }
             } else {
-                $filaMeses[$c] = $mesActual;
+                // 🔹 Lectura XLSX correcta (evita caracteres extraños)
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+                $sheet = $spreadsheet->getActiveSheet();
+                $rows = $sheet->toArray();
             }
-        }
 
-        // ─────────────────────────────
-        // CACHE ALUMNOS NORMALIZADOS
-        // ─────────────────────────────
-        $alumnos = Alumno::select(
-            'id',
-            DB::raw("
-                REPLACE(
+            if (count($rows) < 3) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'Excel inválido: estructura insuficiente'
+                ], 422);
+            }
+
+            // ─────────────────────────────
+            // CABECERAS
+            // ─────────────────────────────
+            $filaMeses = $rows[0];
+            $filaDias  = $rows[1];
+
+            $mapMeses = [
+                'ENERO' => 1,
+                'FEBRERO' => 2,
+                'MARZO' => 3,
+                'ABRIL' => 4,
+                'MAYO' => 5,
+                'JUNIO' => 6,
+                'JULIO' => 7,
+                'AGOSTO' => 8,
+                'SEPTIEMBRE' => 9,
+                'OCTUBRE' => 10,
+                'NOVIEMBRE' => 11,
+                'DICIEMBRE' => 12,
+            ];
+
+            $anio = date('Y');
+
+            // ─────────────────────────────
+            // 🔥 FIX 2: PROPAGAR MESES (CELDAS COMBINADAS)
+            // ─────────────────────────────
+            $mesActual = null;
+            for ($c = 0; $c < count($filaMeses); $c++) {
+                $valor = strtoupper(trim($filaMeses[$c] ?? ''));
+
+                if ($valor !== '' && isset($mapMeses[$valor])) {
+                    $mesActual = $valor;
+                } else {
+                    $filaMeses[$c] = $mesActual;
+                }
+            }
+
+            // ─────────────────────────────
+            // CACHE DE ALUMNOS NORMALIZADOS
+            // ─────────────────────────────
+            $alumnos = Alumno::select(
+                'id',
+                DB::raw("
                     REPLACE(
                         REPLACE(
                             REPLACE(
                                 REPLACE(
                                     REPLACE(
-                                        UPPER(TRIM(CONCAT(nombres,' ',apellidos))),
-                                        'Á','A'
+                                        REPLACE(
+                                            UPPER(TRIM(CONCAT(nombres,' ',apellidos))),
+                                            'Á','A'
+                                        ),
+                                        'É','E'
                                     ),
-                                    'É','E'
+                                    'Í','I'
                                 ),
-                                'Í','I'
+                                'Ó','O'
                             ),
-                            'Ó','O'
+                            'Ú','U'
                         ),
-                        'Ú','U'
-                    ),
-                    'Ñ','N'
-                ) AS nombre_norm
-            ")
-        )
+                        'Ñ','N'
+                    ) AS nombre_norm
+                ")
+            )
             ->get()
             ->pluck('id', 'nombre_norm')
             ->toArray();
 
-        // ─────────────────────────────
-        // CONTADORES
-        // ─────────────────────────────
-        $insertados = 0;
-        $presentes  = 0;
-        $errores    = 0;
-        $erroresDet = [];
+            // ─────────────────────────────
+            // CONTADORES
+            // ─────────────────────────────
+            $insertados = 0;
+            $presentes  = 0;
+            $errores    = 0;
+            $erroresDet = [];
 
-        // ─────────────────────────────
-        // BATCH DATA
-        // ─────────────────────────────
-        $batch = [];
-        $now = now();
-
-        DB::beginTransaction();
-
-        try {
+            $batch = [];
+            $now = now();
 
             Log::create([
                 'vista'   => 'importacion_asistencia',
                 'detalle' => 'Inicio de importación de asistencia',
-                'type' => 'info',
+                'type'    => 'info',
                 'payload' => [
                     'archivo' => $request->file('file')->getClientOriginalName(),
                     'fecha'   => now()->toDateTimeString(),
@@ -182,12 +211,11 @@ class AsistenciaAlumnoController extends Controller
             ]);
 
             // ─────────────────────────────
-            // RECORRER ALUMNOS (DESDE FILA 3)
+            // RECORRER ALUMNOS
             // ─────────────────────────────
-            for ($i = 2; $i < count($hoja); $i++) {
+            for ($i = 2; $i < count($rows); $i++) {
 
-                $fila = $hoja[$i];
-
+                $fila = $rows[$i];
                 $nombreExcel = $this->normalizarTexto($fila[1] ?? '');
 
                 if ($nombreExcel === '') {
@@ -204,9 +232,6 @@ class AsistenciaAlumnoController extends Controller
 
                 $idAlumno = $alumnos[$nombreExcel];
 
-                // ─────────────────────────────
-                // COLUMNAS DE ASISTENCIA (DESDE D)
-                // ─────────────────────────────
                 for ($col = 3; $col < count($fila); $col++) {
 
                     $valor = trim($fila[$col] ?? '');
@@ -241,13 +266,10 @@ class AsistenciaAlumnoController extends Controller
                 }
             }
 
-            // ─────────────────────────────
-            // 🔥 BATCH UPSERT
-            // ─────────────────────────────
             if (!empty($batch)) {
                 AsistenciaAlumno::upsert(
                     $batch,
-                    ['alumno_id', 'dia'], // clave única
+                    ['alumno_id', 'dia'],
                     ['estado', 'observaciones', 'updated_at']
                 );
             }
@@ -257,21 +279,21 @@ class AsistenciaAlumnoController extends Controller
             Log::create([
                 'vista'   => 'importacion_asistencia',
                 'detalle' => 'Importación finalizada',
-                'type' => 'info',
+                'type'    => 'info',
                 'payload' => [
-                    'insertados'      => $insertados,
-                    'presentes'       => $presentes,
-                    'errores'         => $errores,
-                    'detalle_errores' => $erroresDet,
+                    'insertados' => $insertados,
+                    'presentes'  => $presentes,
+                    'errores'    => $errores,
+                    'detalle'   => $erroresDet,
                 ],
             ]);
 
             return response()->json([
-                'success'          => true,
-                'insertados'       => $insertados,
-                'total_presentes'  => $presentes,
-                'total_errores'    => $errores,
-                'errores'          => $erroresDet
+                'success'         => true,
+                'insertados'      => $insertados,
+                'total_presentes' => $presentes,
+                'total_errores'   => $errores,
+                'errores'         => $erroresDet,
             ]);
         } catch (\Throwable $e) {
 
@@ -280,7 +302,7 @@ class AsistenciaAlumnoController extends Controller
             Log::create([
                 'vista'   => 'importacion_asistencia',
                 'detalle' => 'Error en importación de asistencia',
-                'type' => 'error',
+                'type'    => 'error',
                 'payload' => [
                     'exception' => $e->getMessage(),
                     'line'      => $e->getLine(),
@@ -288,10 +310,14 @@ class AsistenciaAlumnoController extends Controller
                 ],
             ]);
 
+            // ─────────────────────────────
+            // 🔥 FIX 3: NUNCA devolver 500
+            // ─────────────────────────────
             return response()->json([
                 'success' => false,
-                'error'   => $e->getMessage()
-            ], 500);
+                'error'   => 'Error al procesar el Excel',
+                'detalle' => $e->getMessage(),
+            ], 422);
         }
     }
 
