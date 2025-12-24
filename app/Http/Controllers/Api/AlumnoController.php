@@ -20,11 +20,22 @@ class AlumnoController extends Controller
         //$q = Alumno::with('anexo');
         $perPage = $request->get('per_page', 10);
 
+        $sortBy = request('sort_by', 'nombres');
+        $sortDir = request('sort_dir', 'asc');
+
+        $allowed = ['nombres', 'apellidos', 'fecha_nacimiento', 'genero', 'anexo_id'];
+
+        if (!in_array($sortBy, $allowed)) {
+            $sortBy = 'nombres';
+        }
+
         $q = Alumno::with(['aulaActual.aula', 'aulas.aula', 'anexo']);
         if ($request->filled('search')) {
             $q->where('nombres', 'like', '%' . $request->search . '%')
                 ->orWhere('apellidos', 'like', '%' . $request->search . '%');
         }
+        $q->orderBy($sortBy, $sortDir);
+
         return $q->paginate($perPage);
     }
 
