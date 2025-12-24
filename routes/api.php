@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AulaController;
 use App\Http\Controllers\Api\AnexoController;
@@ -20,6 +21,7 @@ Route::post('login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+    Route::put('/perfil', [ProfileController::class, 'update']);
     // aquí tus recursos protegidos...
     Route::get('usuarios/list', [UserController::class, 'list']);
     Route::apiResource('usuarios', UserController::class);

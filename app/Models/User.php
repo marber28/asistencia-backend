@@ -51,4 +51,10 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    //obtener rol de usuario, no el atributo, sino el rol asignado
+    public function role()
+    {
+        return $this->roles->pluck('name')->first();
+    }
 }
