@@ -13,6 +13,7 @@ class AsistenciaAlumno extends Model
     protected function casts(): array
     {
         return [
+            'dia' => 'date',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -22,7 +23,7 @@ class AsistenciaAlumno extends Model
     {
         return $this->belongsTo(Alumno::class);
     }
-    
+
     // / Aula actual vía pivot
     public function aulaActual()
     {
@@ -35,4 +36,9 @@ class AsistenciaAlumno extends Model
             'aula_id'    // FK en alumno_aula
         )->where('alumno_aulas.current', 1);
     }
+
+    /* protected function getDiaAttribute($value)
+    {
+        return \Carbon\Carbon::parse($value)->format('Y-m-d i:s:a');
+    } */
 }
