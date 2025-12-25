@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\AsistenciaAlumnoPDFController;
 use App\Http\Controllers\Api\AsistenciaAlumnoController;
 use App\Http\Controllers\Api\AsistenciaMaestroController;
 use App\Http\Controllers\Api\LogController;
+use App\Http\Controllers\Api\DesarrolloLeccionController;
 
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\ReportController;
@@ -54,9 +55,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('am/dia/{fecha}', [AsistenciaMaestroController::class, 'porDia']);
     Route::get('am/mes/{year}/{month}', [AsistenciaMaestroController::class, 'porMes']);
     Route::get('am/anio/{year}', [AsistenciaMaestroController::class, 'porAnio']);
-    
-    Route::post('upload/leccion', [UploadController::class,'uploadLeccionPdf']);
-    Route::get('reports/download', [ReportController::class,'downloadMonthly']);
+
+    // routes/api.php
+    Route::post('/desarrollos', [DesarrolloLeccionController::class, 'storeOrUpdate']);
+    Route::get('/desarrollos-leccion/{id}', [DesarrolloLeccionController::class, 'showByLeccion']);
+    Route::get('/desarrollos/{user_id}/{leccion}/pdf', [DesarrolloLeccionController::class, 'generatePdf']);
+
+    Route::post('upload/leccion', [UploadController::class, 'uploadLeccionPdf']);
+    Route::get('reports/download', [ReportController::class, 'downloadMonthly']);
 
     Route::prefix('logs')->group(function () {
         Route::get('/', [LogController::class, 'index']);
