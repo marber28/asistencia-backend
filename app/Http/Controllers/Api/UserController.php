@@ -15,7 +15,7 @@ class UserController extends Controller
     //index para obtener todos los usuarios
     public function index(Request $request)
     {
-        $q = User::query();
+        $q = User::query()->with('roles');
         if ($request->filled('search')) {
             $q->where('name', 'like', '%' . $request->search . '%')
                 ->orWhere('lastname', 'like', '%' . $request->search . '%')

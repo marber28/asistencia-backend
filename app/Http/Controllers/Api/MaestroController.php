@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreMaestroRequest;
 use App\Models\Maestro;
+use App\Models\User;
 
 class MaestroController extends Controller
 {
@@ -27,6 +28,18 @@ class MaestroController extends Controller
     {
         $data = $request->validated();
         $maestro = Maestro::create($data);
+
+        //crear usuario asociado
+        $pl = User::firstOrCreate(['email' => $maestro->email], [
+            'name' => $maestro->nombres,
+            'lastname' => $maestro->apellidos,
+            'password' => bcrypt('123456'),
+            'in_anexo' => 1,
+            'visible' => 1,
+            'enabled' => 1
+        ]);
+        $pl->assignRole('maestro');
+
         return response()->json($maestro, 201);
     }
 
@@ -45,6 +58,20 @@ class MaestroController extends Controller
             'activo' => 'sometimes|boolean',
         ]);
         $maestro->update($data);
+
+        //actualizar suario asociado
+        $user = User::where('email', $maestro->email)->first();
+        if ($user) {
+            $user->name = $maestro->nombres;
+            $user->lastname = $maestro->apellidos;
+            $user->save();
+
+            //actualizar rol de usuario
+            if (!$user->hasRole('maestro')) {
+                $user->assignRole('maestro');
+            }
+        }
+
         return response()->json($maestro);
     }
 
