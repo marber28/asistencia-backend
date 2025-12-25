@@ -18,7 +18,7 @@ use Maatwebsite\Excel\Facades\Excel;
 class AsistenciaAlumnoController extends Controller
 {
     protected $meses = [
-        "Enero",
+        1 => "Enero",
         "Febrero",
         "Marzo",
         "Abril",
@@ -185,9 +185,9 @@ class AsistenciaAlumnoController extends Controller
                     ) AS nombre_norm
                 ")
             )
-            ->get()
-            ->pluck('id', 'nombre_norm')
-            ->toArray();
+                ->get()
+                ->pluck('id', 'nombre_norm')
+                ->toArray();
 
             // ─────────────────────────────
             // CONTADORES
@@ -579,8 +579,10 @@ class AsistenciaAlumnoController extends Controller
 
         // Inicializamos el array de resultados con todos los meses
         $res = [];
+        $counter = 0;
         foreach ($this->meses as $index => $nombreMes) {
-            $res[$index + 1] = [
+            $counter++;
+            $res[$counter] = [
                 "fecha" => $nombreMes,
                 "total" => 0,
                 "presentes" => 0,
