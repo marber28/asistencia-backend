@@ -12,10 +12,13 @@ class AnexoController extends Controller
     public function index(Request $request)
     {
         $q = Anexo::query();
+        $perPage = $request->get('per_page', 10);
+
+        $q->with('user');
         if ($request->filled('search')) {
             $q->where('nombre', 'like', '%' . $request->search . '%');
         }
-        return $q->paginate(20);
+        return $q->paginate($perPage);
     }
 
     public function store(StoreAnexoRequest $request)
