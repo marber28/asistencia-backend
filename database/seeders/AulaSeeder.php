@@ -28,7 +28,7 @@ class AulaSeeder extends Seeder
         Aula::firstOrCreate([
             'nombre' => 'Principiantes',
             'descripcion' => 'Aula para los niños que están iniciando su educación básica.',
-            'edad_min' => 7,
+            'edad_min' => 8,
             'edad_max' => 9
         ]);
         Aula::firstOrCreate([
