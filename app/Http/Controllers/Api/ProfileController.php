@@ -16,7 +16,12 @@ class ProfileController extends Controller
             'name' => 'sometimes|string|max:255',
             'lastname' => 'sometimes|string|max:255',
             'email'  => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:6'
         ]);
+
+        if ($request->password) {
+            $data['password'] = bcrypt($request->password);
+        }
 
         $user->update($data);
 
