@@ -7,9 +7,11 @@ return new class extends Migration {
         Schema::create('asistencia_maestros', function (Blueprint $table){
             $table->id();
             $table->foreignId('maestro_id')->constrained('maestros')->onDelete('cascade');
-            $table->date('dia');
-            $table->foreignId('leccion_id')->nullable()->constrained('lecciones')->nullOnDelete();
-            $table->enum('estado', ['presente','ausente','tarde'])->default('presente');
+            $table->datetime('dia'); //fecha de desarrollo de la leccion
+            //dias de la semana que asistio
+            $table->string('dias_semana');
+            $table->string('observaciones')->nullable();
+            $table->enum('estado', ['presente','ausente','tarde','justificado'])->default('presente');
             $table->timestamps();
         });
     }

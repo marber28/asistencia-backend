@@ -16,17 +16,20 @@ return new class extends Migration {
         });
 
         //tabla muchos a muchos entre maestros y anexos
-        Schema::create('anexo_maestro', function (Blueprint $table){
+        Schema::create('anexo_maestro_aula', function (Blueprint $table){
             $table->id();
             $table->unsignedBigInteger('anexo_id');
             $table->unsignedBigInteger('maestro_id');
+            $table->unsignedBigInteger('aula_id');
+            $table->boolean('current')->default(false);
             $table->foreign('anexo_id')->references('id')->on('anexos')->onDelete('cascade');
             $table->foreign('maestro_id')->references('id')->on('maestros')->onDelete('cascade');
+            $table->foreign('aula_id')->references('id')->on('aulas')->onDelete('cascade');
             $table->timestamps();
         });
     }
     public function down(){
-        Schema::dropIfExists('anexo_maestro');
+        Schema::dropIfExists('anexo_maestro_aula');
         Schema::dropIfExists('maestros');
     }
 };

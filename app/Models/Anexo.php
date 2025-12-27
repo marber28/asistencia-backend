@@ -10,9 +10,9 @@ class Anexo extends Model
     use HasFactory;
     protected $fillable = ['nombre', 'direccion', 'fecha_creacion', 'user_id', 'logo', 'activo'];
 
-    public function maestros()
+    public function user()
     {
-        return $this->belongsToMany(Maestro::class, 'anexo_maestro', 'anexo_id', 'maestro_id');
+        return $this->belongsTo(User::class);
     }
 
     protected function casts(): array
