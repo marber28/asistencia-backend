@@ -14,13 +14,28 @@ class Maestro extends Model
         return $this->hasMany(AsistenciaMaestro::class);
     }
 
-    //relacion con tabla anexo_maestro_aula para obtener el aula filtrado por el maestro actual
-    public function aulas() {
-        return $this->belongsToMany(Aula::class, 'anexo_maestro_aula', 'maestro_id', 'aula_id');
+    //relacion con tabla anexo_maestro_aula para obtener el anexo
+    public function anexos()
+    {
+        return $this->belongsToMany(Anexo::class, 'anexo_maestro_aula', 'maestro_id', 'anexo_id')
+            ->withPivot('aula_id', 'current');
     }
 
-    //relacion con tabla anexo_maestro_aula para obtener el anexo
-    public function anexos() {
-        return $this->belongsToMany(Anexo::class, 'anexo_maestro_aula', 'maestro_id', 'anexo_id')->wherePivot('current', true);
+    public function anexosConAulas()
+    {
+        return $this->belongsToMany(Anexo::class, 'anexo_maestro_aula', 'maestro_id', 'anexo_id')
+            ->withPivot('aula_id', 'current')
+            ->join('aulas', 'aulas.id', '=', 'anexo_maestro_aula.aula_id')
+            ->select(
+                'anexos.*',
+                'aulas.nombre as aula_nombre',
+                'anexo_maestro_aula.aula_id',
+                'anexo_maestro_aula.current'
+            );
+    }
+
+    public function getAulaAttribute()
+    {
+        return Aula::find($this->pivot->aula_id);
     }
 }

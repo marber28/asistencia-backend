@@ -10,7 +10,7 @@ class StoreMaestroRequest extends FormRequest
     {
         return true;
     }
-    
+
     public function rules()
     {
         return [
@@ -22,9 +22,10 @@ class StoreMaestroRequest extends FormRequest
             'activo' => 'sometimes|boolean',
 
             //relacion a tabla anexo_maestro_aula
-            'aula_id' => 'required|exists:aulas,id',
-            'anexo_id' => 'required|exists:anexos,id',
-            'current' => 'sometimes|in:on,off',
+            'asignaciones' => 'required|array|min:1',
+            'asignaciones.*.anexo_id' => 'required|exists:anexos,id',
+            'asignaciones.*.aula_id' => 'required|exists:aulas,id',
+            'asignaciones.*.current' => 'boolean',
         ];
     }
 

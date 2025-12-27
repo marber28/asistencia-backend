@@ -14,7 +14,7 @@ class MaestroController extends Controller
     public function index(Request $request)
     {
         $q = Maestro::query();
-        $q->with('anexos', 'aulas');
+        $q->with('anexosConAulas');
         if ($request->filled('search')) {
             $q->where('nombres', 'like', '%' . $request->search . '%')
                 ->orWhere('apellidos', 'like', '%' . $request->search . '%')
@@ -34,14 +34,30 @@ class MaestroController extends Controller
         unset($data['anexo_id']);
         $maestro = Maestro::create($data);
 
-        //crear relacion en tabla anexo_maestro_aula si vienen los ids
-        if ($request->filled('anexo_id') && $request->filled('aula_id')) {
-            AnexoMaestroAula::create([
-                'anexo_id' => $request->anexo_id,
-                'maestro_id' => $maestro->id,
-                'aula_id' => $request->aula_id,
-                'current' => true,
-            ]);
+        // STORE o UPDATE (comparten la misma lógica)
+        if ($request->has('asignaciones')) {
+            // Validar: Un maestro no puede tener dos aulas para el mismo anexo
+            $asignaciones = collect($request->asignaciones);
+            $duplicados = $asignaciones->groupBy('anexo_id')->filter(fn($g) => $g->count() > 1);
+
+            if ($duplicados->isNotEmpty()) {
+                return response()->json([
+                    'message' => 'Solo se puede asignar una aula por anexo.',
+                    'detalles' => $duplicados
+                ], 422);
+            }
+
+            $asignaciones = collect($request->asignaciones)
+                ->filter(fn($a) => !empty($a['anexo_id']) && !empty($a['aula_id']))
+                ->mapWithKeys(fn($a) => [
+                    $a['anexo_id'] => [
+                        'aula_id' => $a['aula_id'],
+                        'current' => 1
+                    ]
+                ])
+                ->toArray();
+
+            $maestro->anexos()->sync($asignaciones);
         }
 
         //crear usuario asociado
@@ -81,23 +97,25 @@ class MaestroController extends Controller
         unset($data['anexo_id']);
         $maestro->update($data);
 
-        //update/create relacion en tabla anexo_maestro_aula si vienen los ids
-        if ($request->filled('anexo_id') && $request->filled('aula_id')) {
-            $relation = AnexoMaestroAula::where('maestro_id', $maestro->id)->first();
-            if ($relation) {
-                $relation->update([
-                    'anexo_id' => $request->anexo_id,
-                    'aula_id' => $request->aula_id,
-                    'current' => true,
-                ]);
-            } else {
-                AnexoMaestroAula::create([
-                    'anexo_id' => $request->anexo_id,
-                    'maestro_id' => $maestro->id,
-                    'aula_id' => $request->aula_id,
-                    'current' => true,
-                ]);
+        if ($request->has('asignaciones')) {
+            $currents = collect($request->asignaciones)->where('current', true);
+            if ($currents->count() > 1) {
+                return response()->json([
+                    'message' => 'Solo una asignación puede estar marcada como actual.'
+                ], 422);
             }
+
+            $asignaciones = collect($request->asignaciones)
+                ->filter(fn($a) => !empty($a['anexo_id']) && !empty($a['aula_id']))
+                ->mapWithKeys(fn($a) => [
+                    $a['anexo_id'] => [
+                        'aula_id' => $a['aula_id'],
+                        'current' => 1
+                    ]
+                ])
+                ->toArray();
+
+            $maestro->anexos()->sync($asignaciones);
         }
 
         //actualizar suario asociado
