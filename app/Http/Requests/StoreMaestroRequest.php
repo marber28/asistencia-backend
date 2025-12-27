@@ -20,6 +20,11 @@ class StoreMaestroRequest extends FormRequest
             'telefono' => 'nullable|numeric|unique:maestros,telefono',
             'fecha_nacimiento' => 'nullable|date:format:Y-m-d',
             'activo' => 'sometimes|boolean',
+
+            //relacion a tabla anexo_maestro_aula
+            'aula_id' => 'required|exists:aulas,id',
+            'anexo_id' => 'required|exists:anexos,id',
+            'current' => 'sometimes|in:on,off',
         ];
     }
 
@@ -33,6 +38,9 @@ class StoreMaestroRequest extends FormRequest
             'telefono.numeric' => 'El campo teléfono debe ser un número válido.',
             'telefono.unique' => 'El teléfono ya está en uso.',
             'fecha_nacimiento.date' => 'El campo fecha de nacimiento debe ser una fecha válida.',
+
+            'aula_id.required' => 'El campo aula es obligatoria',
+            'anexo_id.required' => 'El campo anexo es obligatorio',
         ];
     }
 }

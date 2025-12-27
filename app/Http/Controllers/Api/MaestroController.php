@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreMaestroRequest;
 use App\Models\Maestro;
+use App\Models\AnexoMaestroAula;
 use App\Models\User;
 
 class MaestroController extends Controller
@@ -13,6 +14,7 @@ class MaestroController extends Controller
     public function index(Request $request)
     {
         $q = Maestro::query();
+        $q->with('anexos', 'aulas');
         if ($request->filled('search')) {
             $q->where('nombres', 'like', '%' . $request->search . '%')
                 ->orWhere('apellidos', 'like', '%' . $request->search . '%')
@@ -27,7 +29,20 @@ class MaestroController extends Controller
     public function store(StoreMaestroRequest $request)
     {
         $data = $request->validated();
+        //remover de data aula_id y anexo_id antes de crear maestro
+        unset($data['aula_id']);
+        unset($data['anexo_id']);
         $maestro = Maestro::create($data);
+
+        //crear relacion en tabla anexo_maestro_aula si vienen los ids
+        if ($request->filled('anexo_id') && $request->filled('aula_id')) {
+            AnexoMaestroAula::create([
+                'anexo_id' => $request->anexo_id,
+                'maestro_id' => $maestro->id,
+                'aula_id' => $request->aula_id,
+                'current' => true,
+            ]);
+        }
 
         //crear usuario asociado
         $pl = User::firstOrCreate(['email' => $maestro->email], [
@@ -56,8 +71,34 @@ class MaestroController extends Controller
             'email' => 'nullable|email|unique:maestros,email,' . $maestro->id,
             'telefono' => 'nullable|numeric|unique:maestros,telefono,' . $maestro->id,
             'activo' => 'sometimes|boolean',
+
+            //relacion a tabla anexo_maestro_aula
+            'aula_id' => 'sometimes|exists:aulas,id',
+            'anexo_id' => 'sometimes|exists:anexos,id',
         ]);
+        //remover de data aula_id y anexo_id antes de crear maestro
+        unset($data['aula_id']);
+        unset($data['anexo_id']);
         $maestro->update($data);
+
+        //update/create relacion en tabla anexo_maestro_aula si vienen los ids
+        if ($request->filled('anexo_id') && $request->filled('aula_id')) {
+            $relation = AnexoMaestroAula::where('maestro_id', $maestro->id)->first();
+            if ($relation) {
+                $relation->update([
+                    'anexo_id' => $request->anexo_id,
+                    'aula_id' => $request->aula_id,
+                    'current' => true,
+                ]);
+            } else {
+                AnexoMaestroAula::create([
+                    'anexo_id' => $request->anexo_id,
+                    'maestro_id' => $maestro->id,
+                    'aula_id' => $request->aula_id,
+                    'current' => true,
+                ]);
+            }
+        }
 
         //actualizar suario asociado
         $user = User::where('email', $maestro->email)->first();
