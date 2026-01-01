@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\DesarrolloLeccion as Desarrollo;
 use App\Http\Controllers\Controller;
-use App\Models\Leccion;
+use App\Models\Anexo;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
@@ -23,9 +23,22 @@ class DesarrolloLeccionController extends Controller
             'user_id' => 'required|exists:users,id'
         ]);
 
+        $anexo_id = Anexo::where('user_id', $validated['user_id'])->first()->id ?? null;
+
+        if (!$anexo_id) {
+            return response()->json([
+                "succes" => false,
+                "message" => "Usuario no permitido para generar desarrollo de lección",
+                "data" => []
+            ], 400);
+        }
+
+        $validated['anexo_id'] = $anexo_id;
+
         // Buscar si ya existe
         $desarrollo = Desarrollo::where('leccion_id', $validated['leccion_id'])
             ->where('user_id', $validated['user_id'])
+            ->where('anexo_id', $anexo_id)
             ->first();
 
         if ($desarrollo) {
@@ -37,19 +50,39 @@ class DesarrolloLeccionController extends Controller
         }
 
         return response()->json([
+            "succes" => true,
             "message" => "Registro $action correctamente",
             "data" => $desarrollo
         ]);
     }
 
-    public function generatePdf($user_id, $leccion)
+    public function generatePdf(Request $request)
     {
+        $validated = $request->validate([
+            'leccion' => 'required|exists:lecciones,id',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $user_id = $validated['user_id'];
+        $leccion = $validated['leccion'];
+
+        $anexo_id = Anexo::where('user_id', $user_id)->first()->id ?? null;
+
+        if (!$anexo_id) {
+            return response()->json([
+                "succes" => false,
+                "message" => "Usuario no permitido para generar PDF de desarrollo de lección",
+                "data" => []
+            ], 400);
+        }
+
         $desarrollo = Desarrollo::where('user_id', $user_id)
             ->where('leccion_id', $leccion)
+            ->where('anexo_id', $anexo_id)
             ->firstOrFail();
 
         $pdf = $this->pdfRender($desarrollo);
-        $filename = "desarrolloleccion_{$desarrollo->id}{$user_id}.pdf";
+        $filename = "desarrolloleccion_{$desarrollo->id}{$user_id}{$anexo_id}.pdf";
 
         Storage::disk('public')->put("desarrollos/$filename", $pdf->output());
         $desarrollo->update(['pdf' => $filename]);
@@ -69,6 +102,7 @@ class DesarrolloLeccionController extends Controller
     /** GET para precargar datos en React */
     public function showByLeccion($leccion_id)
     {
-        return Desarrollo::where('leccion_id', $leccion_id)->first();
+        $user_id = auth()->id();
+        return Desarrollo::where('leccion_id', $leccion_id)->where('user_id', $user_id)->first();
     }
 }

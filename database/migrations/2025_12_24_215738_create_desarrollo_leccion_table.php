@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('leccion_id')->constrained('lecciones')->cascadeOnDelete();
             $table->string('versiculo_memorizado')->nullable();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('anexo_id')->constrained('anexos')->onDelete('cascade');
             $table->text('ensenanza')->nullable();
             $table->text('motivacion')->nullable();
             $table->text('estrategias')->nullable();

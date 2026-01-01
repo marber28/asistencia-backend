@@ -12,6 +12,7 @@ class DesarrolloLeccion extends Model {
     protected $fillable = [
         'leccion_id',
         'user_id',
+        'anexo_id',
         'versiculo_memorizado',
         'ensenanza',
         'motivacion',
@@ -26,5 +27,9 @@ class DesarrolloLeccion extends Model {
 
     public function user(){
         return $this->belongsTo(User::class);
+    }
+
+    public function anexo() {
+        return $this->belongsTo(Anexo::class);
     }
 }
