@@ -23,9 +23,10 @@ class User extends Authenticatable
         'name',
         'lastname',
         'email',
-        'in_anexo',
         'visible',
         'password',
+        'birthday',
+        'phone',
         'enabled'
     ];
 
@@ -56,5 +57,21 @@ class User extends Authenticatable
     public function role()
     {
         return $this->roles->pluck('name')->first();
+    }
+
+    public function anexos() {
+        return $this->hasMany(Anexo::class);
+    }
+
+    public function anexosConAulas()
+    {
+        return $this->belongsToMany(Anexo::class, 'user_anexo_aula', 'user_id', 'anexo_id')
+            ->withPivot('aula_id', 'user_id')
+            ->join('aulas', 'aulas.id', '=', 'user_anexo_aula.aula_id')
+            ->select(
+                'anexos.*',
+                'aulas.nombre as aula_nombre',
+                'user_anexo_aula.aula_id',
+            );
     }
 }

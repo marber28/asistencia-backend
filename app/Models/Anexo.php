@@ -12,7 +12,16 @@ class Anexo extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(
+            User::class,
+            'user_anexo_aula',
+            'anexo_id',
+            'user_id'
+        )
+        ->withPivot('aula_id')
+        ->whereHas('roles', function ($query) {
+            $query->where('name', 'responsable');
+        });
     }
 
     protected function casts(): array

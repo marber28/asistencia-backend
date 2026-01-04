@@ -11,7 +11,7 @@ class AsistenciaMaestro extends Model
     protected $fillable = ['maestro_id', 'dia', 'leccion_id', 'estado'];
     public function maestro()
     {
-        return $this->belongsTo(Maestro::class);
+        return $this->belongsTo(User::class);
     }
     public function leccion()
     {
