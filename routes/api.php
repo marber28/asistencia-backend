@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
     Route::apiResource('aulas', AulaController::class);
+    Route::get('anexos/list', [AnexoController::class, 'list']);
     Route::apiResource('anexos', AnexoController::class);
     Route::post('alumnos/{alumnoId}/asignar-aula', [AlumnoController::class, 'asignarAula']);
     Route::apiResource('alumnos', AlumnoController::class);
