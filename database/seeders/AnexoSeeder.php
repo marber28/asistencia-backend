@@ -16,35 +16,31 @@ class AnexoSeeder extends Seeder
             'nombre' => 'Las Palmeras II',
             'direccion' => 'La Esperanza',
             'fecha_creacion' => '2025-01-01',
-            'user_id' => 2,
             'activo' => 1
         ]);
+
         Anexo::firstOrCreate([
             'nombre' => 'El Mirador de Las Palmeras',
             'direccion' => 'La Esperanza',
             'fecha_creacion' => '2025-01-01',
-            'user_id' => 2,
             'activo' => 1
         ]);
         Anexo::firstOrCreate([
             'nombre' => 'Barrio 4b',
             'direccion' => 'Alto Trujillo',
             'fecha_creacion' => '2025-01-01',
-            'user_id' => 3,
             'activo' => 1
         ]);
         Anexo::firstOrCreate([
             'nombre' => 'Ciudad de Dios',
             'direccion' => 'Alto Trujillo',
             'fecha_creacion' => '2025-01-01',
-            'user_id' => 3,
             'activo' => 1
         ]);
         Anexo::firstOrCreate([
             'nombre' => 'Barrio 4',
             'direccion' => 'Alto Trujillo',
             'fecha_creacion' => '2025-01-01',
-            'user_id' => 3,
             'activo' => 1
         ]);
     }

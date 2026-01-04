@@ -22,7 +22,6 @@ class RoleSeeder extends Seeder
         $u = User::firstOrCreate(['email' => 'admin@asistencia.com'], [
             'name' => 'Admin',
             'lastname' => 'Admin',
-            'in_anexo' => false,
             'enabled' => true,
             'visible' => false,
             'password' => bcrypt('123456')
@@ -32,7 +31,6 @@ class RoleSeeder extends Seeder
         $pl = User::firstOrCreate(['email' => 'palmeras@asistencia.com'], [
             'name' => 'Doris',
             'lastname' => 'Palmeras',
-            'in_anexo' => true,
             'enabled' => true,
             'visible' => true,
             'password' => bcrypt('123456')
@@ -42,7 +40,6 @@ class RoleSeeder extends Seeder
         $pal = User::firstOrCreate(['email' => 'altotrujillo@asistencia.com'], [
             'name' => 'Antonio',
             'lastname' => 'Cordova',
-            'in_anexo' => true,
             'enabled' => true,
             'visible' => true,
             'password' => bcrypt('123456')
