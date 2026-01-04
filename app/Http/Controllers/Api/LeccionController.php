@@ -16,9 +16,7 @@ class LeccionController extends Controller
     public function index(Request $request)
     {
         $q = Leccion::query();
-        if ($request->filled('from')) $q->where('fecha', '>=', $request->from);
-        if ($request->filled('to')) $q->where('fecha', '<=', $request->to);
-        return $q->orderBy('fecha', 'desc')->paginate(20);
+        return $q->orderBy('date_to', 'desc')->paginate(20);
     }
 
     public function store(StoreLeccionRequest $request)
@@ -108,18 +106,21 @@ class LeccionController extends Controller
 
         foreach ($rows as $i => $row) {
             $titulo = $row[0] ?? null;
-            $fecha = $row[1] ?? null;
+            $fecha_de = $row[1] ?? null;
+            $fecha_a = $row[1] ?? null;
             $versiculo = $row[2] ?? null;
             $archivo_pdf = $row[3] ?? null;
 
             $validator = \Validator::make([
                 "titulo" => $titulo,
-                "fecha" => $fecha,
+                "date_from" => $fecha_de,
+                "date_to" => $fecha_a,
                 "versiculo" => $versiculo,
                 "archivo_pdf" => $archivo_pdf,
             ], [
                 'titulo' => 'required|string|max:255|unique:lecciones,titulo',
-                'fecha' => 'required|date|date_format:Y-m-d',
+                'date_from' => 'required|date|date_format:Y-m-d',
+                'date_to' => 'required|date|date_format:Y-m-d',
                 'versiculo' => 'nullable|string|max:255',
                 'archivo_pdf' => 'required'
             ]);
@@ -133,7 +134,8 @@ class LeccionController extends Controller
                 // Search criteria
                 [
                     'titulo' => $titulo,
-                    "fecha" => $fecha
+                    "date_from" => $fecha_de,
+                    "date_to" => $fecha_a,
                 ],
                 // Values to update/create
                 [
@@ -159,7 +161,8 @@ class LeccionController extends Controller
         // ENCABEZADOS
         $columns = [
             "titulo",
-            "fecha",
+            "fecha de",
+            "fecha a",
             "versiculo",
             "archivo_pdf",
         ];
@@ -174,7 +177,7 @@ class LeccionController extends Controller
 
         // Fila de ejemplo opcional
         $sheet->fromArray([
-            ['El amor de Dios', "2025-01-15", 'Juan 3:16', '/ruta']
+            ['El amor de Dios', "2025-01-15", "2025-01-16", 'Juan 3:16', '/ruta']
         ], NULL, 'A2');
 
         // Generar archivo

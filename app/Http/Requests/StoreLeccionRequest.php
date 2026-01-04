@@ -16,7 +16,8 @@ class StoreLeccionRequest extends FormRequest
         if ($isPost) {
             return [
                 'titulo' => 'required|string|max:255|unique:lecciones,titulo',
-                'fecha' => 'nullable|date',
+                'date_from' => 'nullable|date|before:date_to',
+                'date_to' => 'nullable|date|after:date_from',
                 'versiculo' => 'nullable|string|max:255',
                 'archivo_pdf' => 'nullable|mimes:pdf|max:10240'
             ];
@@ -24,7 +25,8 @@ class StoreLeccionRequest extends FormRequest
             $leccion = $this->route('leccion');
             return [
                 'titulo' => 'sometimes|required|string|max:255|unique:lecciones,titulo,' . $leccion->id,
-                'fecha' => 'nullable|date|date_format:Y-m-d',
+                'date_from' => 'nullable|date|date_format:Y-m-d|before:date_to',
+                'date_to' => 'nullable|date|date_format:Y-m-d|after:date_from',
                 'versiculo' => 'nullable|string|max:255',
                 'archivo_pdf' => 'nullable|mimes:pdf|max:10240'
             ];
@@ -36,7 +38,10 @@ class StoreLeccionRequest extends FormRequest
         return [
             'titulo.required' => 'El título es obligatorio.',
             'titulo.unique' => 'El título ya ha sido usado.',
-            'fecha.date' => 'La fecha no es correcta',
+            'date_from.date' => 'La fecha desde no es correcta',
+            'date_to.date' => 'La fecha hasta no es correcta',
+            'date_from.before' => 'La fecha debe ser menor',
+            'date_to.after' => 'La fecha debe ser mayor',
             'archivo_pdf' => 'Solo se permite un archivo .pdf'
         ];
     }

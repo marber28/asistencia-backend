@@ -7,7 +7,8 @@ return new class extends Migration {
         Schema::create('lecciones', function (Blueprint $table){
             $table->id();
             $table->string('titulo');
-            $table->date('fecha')->nullable();
+            $table->date('date_from')->nullable();
+            $table->date('date_to')->nullable();
             $table->string('versiculo')->nullable();
             $table->string('archivo_pdf')->nullable();
             $table->timestamps();
