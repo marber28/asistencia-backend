@@ -22,9 +22,7 @@ class UserController extends Controller
                 ->orWhere('email', 'like', '%' . $request->search . '%');
         }
         $q->where('visible', 1);
-        /* if ($request->filled('enabled')) {
-            $q->where('enabled', filter_var($request->enabled, FILTER_VALIDATE_BOOLEAN));
-        } */
+
         return $q->paginate(20);
     }
 
@@ -33,23 +31,38 @@ class UserController extends Controller
         return [];
     }
 
-    public function list()
+    public function list(Request $request)
     {
+        $request->validate([
+            'role' => 'sometimes|in:admin,responsable,maestro',
+        ]);
+
+        $role = $request->input('role');
+
         // Obtener todos los usuarios
         $users = User::where('enabled', true)
-            ->where('in_anexo', true)
-            ->where('visible', true)
-            ->get();
+            ->where('visible', true);
+
+        if ($role) {
+            $users->whereHas('roles', function ($query) use($role) {
+                $query->where('name', $role);
+            });
+        }
+
+        $users = $users->get();
         return response()->json($users);
     }
 
     public function store(StoreUsuarioRequest $request)
     {
         $data = $request->validated();
+        $role = $request->input('role');
 
         $data['password'] = bcrypt($request->input('password'));
         $data['visible'] = 1;
         $user = User::create($data);
+
+        $user->assignRole($role);
         return response()->json($user, 201);
     }
 
@@ -59,9 +72,9 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'lastname' => 'sometimes|string|max:255',
             'email'    => 'sometimes|nullable|email|unique:users,email,' . $usuario->id,
-            'in_anexo' => 'sometimes|boolean',
             'password' => 'sometimes|nullable|min:6',
             'enabled' => 'sometimes|boolean',
+            'role' => 'sometimes|in:admin,responsable,maestro',
         ]);
 
         // Procesar password solo si se envía
@@ -71,6 +84,11 @@ class UserController extends Controller
             unset($data['password']);
         }
         $usuario->update($data);
+
+        if ($request->filled('role')) {
+            $usuario->syncRoles([$request->role]); // 👈 importante
+        }
+
         return response()->json($usuario);
     }
 

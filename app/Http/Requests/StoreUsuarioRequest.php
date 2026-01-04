@@ -18,9 +18,9 @@ class StoreUsuarioRequest extends FormRequest
             'lastname' => 'required|string|max:255',
             'email' => 'nullable|email|unique:users,email',
             //'phone' => 'nullable|numeric|unique:users,phone',
-            'in_anexo' => 'sometimes|boolean',
             'password' => 'required|min:6',
             'enabled' => 'sometimes|boolean',
+            'role' => 'sometimes|in:admin,responsable,maestro',
         ];
     }
 
@@ -35,6 +35,7 @@ class StoreUsuarioRequest extends FormRequest
             //'phone.unique' => 'El teléfono ya está en uso.',
             'password.required' => 'LA contraseña es obligatoria.',
             'password.min' => 'LA contraseña debe tener 6 caracteres como mínimo.',
+            'role.in' => 'El rol no está permitido'
         ];
     }
 }

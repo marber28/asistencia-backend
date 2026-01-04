@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreAnexoRequest;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Anexo;
+use App\Models\UserAnexoAula;
 
 class AnexoController extends Controller
 {
@@ -22,6 +23,14 @@ class AnexoController extends Controller
         return $q->paginate($perPage);
     }
 
+    public function list(Request $request)
+    {
+        // Obtener todos los anexos
+        $anexos = Anexo::where('activo', true)
+            ->get();
+        return response()->json($anexos);
+    }
+
     public function store(StoreAnexoRequest $request)
     {
         $data = $request->validated();
@@ -30,7 +39,16 @@ class AnexoController extends Controller
             $data['logo'] = $request->file('logo')->store('anexos', 'public');
         }
 
+        unset($data['user_id']);
+
         $anexo = Anexo::create($data);
+
+        //Asignar responsable de anexo
+        UserAnexoAula::firstOrCreate([
+            'anexo_id' => $anexo->id,
+            'user_id' => $request->input('user_id'),
+        ]);
+
         return response()->json($anexo, 201);
     }
 
@@ -58,7 +76,15 @@ class AnexoController extends Controller
             $data['logo'] = $request->file('logo')->store('anexos', 'public');
         }
 
+        unset($data['user_id']);
+
         $anexo->update($data);
+
+        //Asignar/actualizar responsable de anexo
+        UserAnexoAula::updateOrCreate([
+            'anexo_id' => $anexo->id,
+            'user_id' => $request->input('user_id'),
+        ]);
 
         return response()->json($anexo);
     }
