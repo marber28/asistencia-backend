@@ -16,9 +16,6 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('direccion');
             $table->date('fecha_creacion');
-            //campo foreign key de la tabla users
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->string('logo')->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();

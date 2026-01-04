@@ -6,7 +6,7 @@ return new class extends Migration {
     public function up(){
         Schema::create('asistencia_maestros', function (Blueprint $table){
             $table->id();
-            $table->foreignId('maestro_id')->constrained('maestros')->onDelete('cascade');
+            $table->foreignId('maestro_id')->constrained('users')->onDelete('cascade');
             $table->datetime('dia'); //fecha de desarrollo de la leccion
             //dias de la semana que asistio
             $table->string('dias_semana');
